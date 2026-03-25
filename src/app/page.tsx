@@ -1,9 +1,15 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { Store, ShoppingBag } from "lucide-react";
 
 export default function Home() {
+  useEffect(() => {
+    // Reset admin session whenever user is on landing page
+    localStorage.removeItem("pos_admin_role");
+  }, []);
+
   return (
     <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full text-center">
