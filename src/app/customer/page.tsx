@@ -4,8 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
-import { 
-  ShoppingCart, Search, Trash2, Plus, Minus, 
+import {
+  ShoppingCart, Search, Trash2, Plus, Minus,
   CheckCircle2, AlertCircle, Maximize, User, ScanLine, X, Lock, Flame, Info, ShoppingBag, Download
 } from "lucide-react";
 import { playBeepSound } from "@/lib/sounds";
@@ -23,11 +23,11 @@ export default function CustomerPage() {
   const [manualCode, setManualCode] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [tableNumber, setTableNumber] = useState("");
-  
+
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [receiptData, setReceiptData] = useState<any | null>(null);
   const [showCheckoutConfirm, setShowCheckoutConfirm] = useState(false);
-  
+
   const [mounted, setMounted] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
   const [bestSellers, setBestSellers] = useState<any[]>([]);
@@ -81,7 +81,7 @@ export default function CustomerPage() {
       .select('*, products(name)')
       .order('sold_count', { ascending: false })
       .limit(6);
-    if(data) setBestSellers(data);
+    if (data) setBestSellers(data);
   };
 
   const handleScan = async (barcode: string) => {
@@ -91,7 +91,7 @@ export default function CustomerPage() {
         .select("*, products(name)")
         .eq("barcode", barcode)
         .single();
-        
+
       if (error || !data) {
         alert("❌ Barcode tidak ditemukan di database!");
         return;
@@ -105,8 +105,8 @@ export default function CustomerPage() {
   };
 
   const confirmAddToCart = () => {
-    if(!pendingScannedItem) return;
-    
+    if (!pendingScannedItem) return;
+
     setCart((prev) => {
       const existing = prev.find((item) => item.variant.id === pendingScannedItem.id);
       if (existing) {
@@ -118,7 +118,7 @@ export default function CustomerPage() {
       }
       return [...prev, { variant: pendingScannedItem, quantity: 1 }];
     });
-    
+
     setPendingScannedItem(null);
     setManualCode("");
   };
@@ -155,11 +155,11 @@ export default function CustomerPage() {
 
       const { data: trxData, error: trxError } = await supabase
         .from("transactions")
-        .insert([{ 
-           status: "pending", 
-           total_amount: totalAmount,
-           customer_name: customerName,
-           table_number: tableNumber
+        .insert([{
+          status: "pending",
+          total_amount: totalAmount,
+          customer_name: customerName,
+          table_number: tableNumber
         }])
         .select()
         .single();
@@ -216,35 +216,35 @@ export default function CustomerPage() {
     <main className="min-h-screen bg-slate-50 flex flex-col font-sans mb-32">
       <div className="bg-slate-900 text-white p-5 lg:p-6 shadow-xl sticky top-0 z-10 flex justify-between items-center no-print">
         <div onClick={handleSecretGateway} className="cursor-pointer select-none">
-           <h1 className="text-xl lg:text-2xl font-black tracking-tight flex items-center gap-2">
-             <ShoppingBag size={24} className="text-green-400" /> Kedai Keluarga
-           </h1>
-           <p className="text-xs text-slate-400 mt-1">Self-Service POS • Scan barcode barang Anda</p>
+          <h1 className="text-xl lg:text-2xl font-black tracking-tight flex items-center gap-2">
+            <ShoppingBag size={24} className="text-green-400" /> Kedai Keluarga
+          </h1>
+          <p className="text-xs text-slate-400 mt-1">Self-Service POS • Scan barcode barang Anda</p>
         </div>
         <div className="bg-slate-800 p-2.5 rounded-2xl flex items-center gap-2 border border-slate-700">
-           <ShoppingCart size={20} className="text-green-400" />
-           <span className="font-bold text-lg">{cart.length}</span>
+          <ShoppingCart size={20} className="text-green-400" />
+          <span className="font-bold text-lg">{cart.length}</span>
         </div>
       </div>
 
       <div className="p-4 lg:p-8 max-w-lg mx-auto w-full no-print flex-1 space-y-6">
-        
+
         {/* BEST SELLERS SECTION */}
         {bestSellers.length > 0 && cart.length === 0 && (
           <div className="mb-6 animate-in slide-in-from-bottom-4 duration-500">
-             <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-3 flex items-center gap-1.5"><Flame size={18} className="text-orange-500"/> Terlaris Minggu Ini</h2>
-             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-               {bestSellers.map(item => (
-                 <div key={item.id} onClick={() => { setPendingScannedItem(item); playBeepSound(); }} className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 hover:shadow-md hover:border-blue-200 transition-all cursor-pointer active:scale-95 group flex flex-col items-center text-center">
-                   <div className="w-16 h-16 rounded-full bg-slate-100 mb-2 overflow-hidden border border-slate-200 shadow-inner group-hover:shadow-md transition-shadow">
-                     {item.image_url ? <img src={item.image_url} className="w-full h-full object-cover" alt="product"/> : <div className="w-full h-full flex items-center justify-center text-slate-300"><ShoppingCart size={24}/></div>}
-                   </div>
-                   <p className="font-bold text-slate-800 text-xs line-clamp-2 leading-tight">{item.variant_name || item.products?.name}</p>
-                   <p className="text-blue-600 font-extrabold text-sm mt-1">Rp {(item.price || 0).toLocaleString('id-ID')}</p>
-                   <p className="text-[9px] font-bold text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Order Sekarang</p>
-                 </div>
-               ))}
-             </div>
+            <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-3 flex items-center gap-1.5"><Flame size={18} className="text-orange-500" /> Terlaris Minggu Ini</h2>
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+              {bestSellers.map(item => (
+                <div key={item.id} onClick={() => { setPendingScannedItem(item); playBeepSound(); }} className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 hover:shadow-md hover:border-blue-200 transition-all cursor-pointer active:scale-95 group flex flex-col items-center text-center">
+                  <div className="w-16 h-16 rounded-full bg-slate-100 mb-2 overflow-hidden border border-slate-200 shadow-inner group-hover:shadow-md transition-shadow">
+                    {item.image_url ? <img src={item.image_url} className="w-full h-full object-cover" alt="product" /> : <div className="w-full h-full flex items-center justify-center text-slate-300"><ShoppingCart size={24} /></div>}
+                  </div>
+                  <p className="font-bold text-slate-800 text-xs line-clamp-2 leading-tight">{item.variant_name || item.products?.name}</p>
+                  <p className="text-blue-600 font-extrabold text-sm mt-1">Rp {(item.price || 0).toLocaleString('id-ID')}</p>
+                  <p className="text-[9px] font-bold text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Order Sekarang</p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -255,7 +255,7 @@ export default function CustomerPage() {
           </div>
           <h2 className="text-xl font-black text-gray-800 mb-2">Scan Barcode</h2>
           <p className="text-gray-500 text-sm text-center mb-6">Arahkan kamera ke barcode produk</p>
-          
+
           <div className="w-full aspect-square max-w-[300px] bg-slate-900 rounded-3xl overflow-hidden shadow-inner border-4 border-slate-100 relative mb-4">
             {!cameraActive ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-white bg-slate-800">
@@ -298,7 +298,7 @@ export default function CustomerPage() {
               {cart.map((item) => (
                 <div key={item.variant.id} className="p-4 flex gap-4 items-center">
                   <div className="w-14 h-14 bg-slate-50 rounded-2xl flex-shrink-0 flex items-center justify-center border border-gray-100 overflow-hidden">
-                    {item.variant.image_url ? <img src={item.variant.image_url} className="w-full h-full object-cover"/> : <ShoppingCart size={24} className="text-gray-300"/>}
+                    {item.variant.image_url ? <img src={item.variant.image_url} className="w-full h-full object-cover" /> : <ShoppingCart size={24} className="text-gray-300" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-gray-800 text-sm truncate pr-4">{item.variant.variant_name || item.variant.products?.name}</p>
@@ -323,18 +323,18 @@ export default function CustomerPage() {
       {pendingScannedItem && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex flex-col items-center justify-end p-0 animate-in fade-in duration-200 no-print">
           <div className="bg-white rounded-t-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl animate-in slide-in-from-bottom-full duration-300">
-             <div className="p-1 flex justify-center"><div className="w-12 h-1.5 bg-gray-200 rounded-full my-3"></div></div>
-             <div className="px-6 pb-6 text-center">
-                <div className="w-24 h-24 mx-auto bg-slate-100 rounded-full mb-4 flex items-center justify-center overflow-hidden border-4 border-slate-50 shadow-inner">
-                   {pendingScannedItem.image_url ? <img src={pendingScannedItem.image_url} className="w-full h-full object-cover"/> : <ShoppingCart size={32} className="text-slate-300"/>}
-                </div>
-                <h3 className="text-2xl font-black text-slate-800 mb-1">{pendingScannedItem.variant_name || pendingScannedItem.products?.name}</h3>
-                <p className="text-lg text-blue-600 font-bold mb-6">Rp {(pendingScannedItem.price || 0).toLocaleString('id-ID')}</p>
-                <div className="flex gap-3">
-                  <button onClick={() => setPendingScannedItem(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-4 rounded-2xl transition-all">Batal</button>
-                  <button onClick={confirmAddToCart} className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-500/30 flex justify-center items-center gap-2"><Plus size={20}/> Tambahkan</button>
-                </div>
-             </div>
+            <div className="p-1 flex justify-center"><div className="w-12 h-1.5 bg-gray-200 rounded-full my-3"></div></div>
+            <div className="px-6 pb-6 text-center">
+              <div className="w-24 h-24 mx-auto bg-slate-100 rounded-full mb-4 flex items-center justify-center overflow-hidden border-4 border-slate-50 shadow-inner">
+                {pendingScannedItem.image_url ? <img src={pendingScannedItem.image_url} className="w-full h-full object-cover" /> : <ShoppingCart size={32} className="text-slate-300" />}
+              </div>
+              <h3 className="text-2xl font-black text-slate-800 mb-1">{pendingScannedItem.variant_name || pendingScannedItem.products?.name}</h3>
+              <p className="text-lg text-blue-600 font-bold mb-6">Rp {(pendingScannedItem.price || 0).toLocaleString('id-ID')}</p>
+              <div className="flex gap-3">
+                <button onClick={() => setPendingScannedItem(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-4 rounded-2xl transition-all">Batal</button>
+                <button onClick={confirmAddToCart} className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-500/30 flex justify-center items-center gap-2"><Plus size={20} /> Tambahkan</button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -343,18 +343,18 @@ export default function CustomerPage() {
       {showCheckoutConfirm && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex flex-col items-center justify-end p-0 animate-in fade-in duration-200 no-print">
           <div className="bg-white rounded-t-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl animate-in slide-in-from-bottom-full duration-300">
-             <div className="p-1 flex justify-center"><div className="w-12 h-1.5 bg-gray-200 rounded-full my-3"></div></div>
-             <div className="px-6 pb-6 text-center">
-                <div className="w-20 h-20 mx-auto bg-blue-100 rounded-full mb-4 flex items-center justify-center text-blue-600">
-                   <Lock size={32} />
-                </div>
-                <h3 className="text-2xl font-black text-slate-800 mb-2">Selesaikan Belanja?</h3>
-                <p className="text-sm text-gray-500 mb-6 px-4">Pesanan Atas Nama <b>{customerName}</b> (Meja <b>{tableNumber}</b>) akan dikunci dan dikirim ke Kasir.</p>
-                <div className="flex gap-3">
-                  <button onClick={() => setShowCheckoutConfirm(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-4 rounded-2xl transition-all">Batal</button>
-                  <button onClick={handleCheckout} className="flex-[2] bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-green-500/30 transition-all">Kirim Pesanan</button>
-                </div>
-             </div>
+            <div className="p-1 flex justify-center"><div className="w-12 h-1.5 bg-gray-200 rounded-full my-3"></div></div>
+            <div className="px-6 pb-6 text-center">
+              <div className="w-20 h-20 mx-auto bg-blue-100 rounded-full mb-4 flex items-center justify-center text-blue-600">
+                <Lock size={32} />
+              </div>
+              <h3 className="text-2xl font-black text-slate-800 mb-2">Selesaikan Belanja?</h3>
+              <p className="text-sm text-gray-500 mb-6 px-4">Pesanan Atas Nama <b>{customerName}</b> (Meja <b>{tableNumber}</b>) akan dikunci dan dikirim ke Kasir.</p>
+              <div className="flex gap-3">
+                <button onClick={() => setShowCheckoutConfirm(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-4 rounded-2xl transition-all">Batal</button>
+                <button onClick={handleCheckout} className="flex-[2] bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-green-500/30 transition-all">Kirim Pesanan</button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -370,7 +370,7 @@ export default function CustomerPage() {
               </div>
               <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 flex-1 flex items-center gap-2">
                 <span className="text-gray-400 font-bold text-xs">Meja</span>
-                <input type="text" placeholder="No." className="bg-transparent w-full text-sm font-black text-blue-600 outline-none placeholder:font-normal placeholder-gray-400 uppercase text-center" value={tableNumber} onChange={e => setTableNumber(e.target.value)} maxLength={3}/>
+                <input type="text" placeholder="No." className="bg-transparent w-full text-sm font-black text-blue-600 outline-none placeholder:font-normal placeholder-gray-400 uppercase text-center" value={tableNumber} onChange={e => setTableNumber(e.target.value)} maxLength={3} />
               </div>
             </div>
             <div className="flex items-center justify-between gap-4">
@@ -382,7 +382,7 @@ export default function CustomerPage() {
                 </p>
               </div>
               <button onClick={requestCheckoutConfirmation} disabled={isCheckingOut || !customerName.trim() || !tableNumber.trim()} className="bg-green-500 hover:bg-green-600 text-white px-6 py-3.5 rounded-2xl font-black shadow-lg shadow-green-500/30 transition-all active:scale-95 disabled:opacity-50 disabled:scale-100 flex items-center gap-2 text-sm uppercase tracking-wide">
-                {isCheckingOut ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><CheckCircle2 size={20}/> Selesai Belanja</>}
+                {isCheckingOut ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><CheckCircle2 size={20} /> Selesai Belanja</>}
               </button>
             </div>
           </div>
@@ -396,15 +396,15 @@ export default function CustomerPage() {
             <div className="bg-green-500 p-8 text-center text-white relative">
               <Lock size={48} className="mx-auto mb-3 opacity-90" />
               <h2 className="text-3xl font-black tracking-tight leading-none mb-2">Keranjang Dikunci</h2>
-              <p className="text-green-100 text-sm font-medium bg-green-600/50 p-2 rounded-xl mt-3 flex items-center justify-center gap-2"><Info size={16}/> Silakan tunjukkan layar ini ke kasir</p>
+              <p className="text-green-100 text-sm font-medium bg-green-600/50 p-2 rounded-xl mt-3 flex items-center justify-center gap-2"><Info size={16} /> Silakan tunjukkan layar ini ke kasir</p>
             </div>
-            
+
             {/* The Actual Receipt Layout for printing/screenshot */}
             <div id="customer-receipt" className="p-6 bg-slate-50 font-mono text-xs text-black">
               <div className="text-center font-bold text-base mb-1">KEDAI KELUARGA</div>
               <div className="text-center mb-4 text-gray-500">Struk Antrean • Tunjukkan ke Kasir</div>
               <div className="border-b-2 border-dashed border-gray-300 mb-4"></div>
-              
+
               <div className="flex justify-between mb-1">
                 <span className="text-gray-500">Nama Pemesan:</span>
                 <span className="font-bold uppercase text-sm">{receiptData.name}</span>
@@ -417,9 +417,9 @@ export default function CustomerPage() {
                 <span className="text-gray-500">Waktu:</span>
                 <span className="font-medium">{new Date().toLocaleString('id-ID')}</span>
               </div>
-              
+
               <div className="border-b-2 border-dashed border-gray-300 mb-4"></div>
-              
+
               <div className="space-y-3 mb-4">
                 {receiptData.items.map((item: any, i: number) => (
                   <div key={i}>
@@ -431,27 +431,27 @@ export default function CustomerPage() {
                   </div>
                 ))}
               </div>
-              
+
               <div className="border-b-2 border-dashed border-gray-300 mb-4"></div>
-              
+
               <div className="flex justify-between text-base font-black text-gray-900 mb-4">
                 <span>TOTAL</span>
                 <span className="text-lg">Rp {receiptData.total.toLocaleString('id-ID')}</span>
               </div>
-              
+
               <div className="text-center text-[10px] text-gray-400 mt-6 pt-4 border-t border-gray-200">
                 ID: {receiptData.transactionId}
               </div>
             </div>
 
             <div className="p-5 bg-white border-t border-gray-200 no-print space-y-2">
-              <button 
+              <button
                 onClick={handleDownloadReceipt}
                 className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-2xl transition-all active:scale-95"
               >
-                <Download size={18}/> Download / Cetak Struk
+                <Download size={18} /> Download / Cetak Struk
               </button>
-              <button 
+              <button
                 onClick={() => { setReceiptData(null); window.scrollTo(0, 0); }}
                 className="w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3.5 px-4 rounded-2xl transition-all"
               >
