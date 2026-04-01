@@ -7,10 +7,13 @@ import {
   CheckCircle, PackageSearch, ListOrdered, Plus, Search,
   Save, Printer, Smartphone, Download, X, History, ScanLine, RotateCcw,
   Ban, ShoppingBag, BarChart3, CalendarDays, Trash2, Edit, LayoutGrid, Lock,
-  DollarSign, TrendingUp, Receipt, Clock, PlusCircle, AlertCircle
+  DollarSign, TrendingUp, Receipt, Clock, PlusCircle, AlertCircle,
+  FileSpreadsheet, Sheet, ExternalLink, Loader2
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, PieChart, Pie, Cell, Legend } from "recharts";
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
+import { exportTransactionsXlsx, exportInventoryXlsx, exportFullReportXlsx } from "@/lib/exportXlsx";
+import { syncToGoogleSheets } from "@/lib/googleSheets";
 
 const Scanner = dynamic(() => import("@/components/Scanner"), { ssr: false });
 
@@ -72,6 +75,10 @@ export default function AdminDashboard() {
   const [editProductImage, setEditProductImage] = useState("");
   const [isUpdatingProduct, setIsUpdatingProduct] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+
+  // Google Sheets Sync
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ success: boolean; message: string; url?: string } | null>(null);
 
   // Inventory period filter
   const [invPeriod, setInvPeriod] = useState<'today' | 'week' | 'month' | 'year' | 'custom'>('today');
@@ -812,6 +819,53 @@ export default function AdminDashboard() {
               <p className="text-xs text-gray-400 mt-3 text-center">Grafik menampilkan distribusi jumlah transaksi per jam. Jam dengan bar paling tinggi = jam tersibuk Anda.</p>
             </div>
 
+            {/* === SECTION: EXPORT & GOOGLE SHEETS === */}
+            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+              <h3 className="text-sm font-bold text-gray-800 mb-4 uppercase tracking-wider flex items-center gap-2"><FileSpreadsheet size={16} /> Export & Integrasi</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <button
+                  onClick={() => exportTransactionsXlsx(history)}
+                  className="flex items-center justify-center gap-2 bg-green-50 hover:bg-green-100 text-green-700 font-bold py-3 px-4 rounded-xl border border-green-200 transition-all active:scale-95 text-sm"
+                >
+                  <Download size={16} /> Transaksi (.xlsx)
+                </button>
+                <button
+                  onClick={() => exportInventoryXlsx(inventory, inventorySoldMap)}
+                  className="flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold py-3 px-4 rounded-xl border border-blue-200 transition-all active:scale-95 text-sm"
+                >
+                  <Download size={16} /> Inventori (.xlsx)
+                </button>
+                <button
+                  onClick={() => exportFullReportXlsx(history, inventory, inventorySoldMap, expenses)}
+                  className="flex items-center justify-center gap-2 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold py-3 px-4 rounded-xl border border-purple-200 transition-all active:scale-95 text-sm"
+                >
+                  <FileSpreadsheet size={16} /> Laporan Lengkap (.xlsx)
+                </button>
+                <button
+                  onClick={async () => {
+                    setIsSyncing(true); setSyncResult(null);
+                    const result = await syncToGoogleSheets({ transactions: history, inventory, soldMap: inventorySoldMap, expenses });
+                    setSyncResult(result); setIsSyncing(false);
+                  }}
+                  disabled={isSyncing}
+                  className="flex items-center justify-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold py-3 px-4 rounded-xl border border-emerald-200 transition-all active:scale-95 text-sm disabled:opacity-50"
+                >
+                  {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <Sheet size={16} />}
+                  {isSyncing ? 'Sync...' : 'Sync Google Sheets'}
+                </button>
+              </div>
+              {syncResult && (
+                <div className={`mt-3 p-3 rounded-xl text-sm font-medium flex items-center justify-between ${syncResult.success ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                  <span>{syncResult.message}</span>
+                  {syncResult.url && (
+                    <a href={syncResult.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 bg-green-600 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-green-700 transition-colors">
+                      <ExternalLink size={12} /> Buka Sheets
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+
           </div>
         )}
 
@@ -840,6 +894,16 @@ export default function AdminDashboard() {
                 <div><p className="text-[10px] text-gray-400 font-bold uppercase">Pendapatan</p><p className="font-black text-green-600">Rp {filteredHistory.filter(t => t.status === 'paid').reduce((s: number, t: any) => s + (t.total_amount || 0), 0).toLocaleString('id-ID')}</p></div>
                 <div><p className="text-[10px] text-gray-400 font-bold uppercase">Batal</p><p className="font-black text-red-500">{filteredHistory.filter(t => t.status === 'cancelled').length}</p></div>
               </div>
+              {authRole === 'owner' && (
+                <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                  <button
+                    onClick={() => exportTransactionsXlsx(filteredHistory)}
+                    className="flex items-center gap-1.5 bg-green-50 hover:bg-green-100 text-green-700 font-bold py-2 px-3 rounded-lg border border-green-200 transition-all active:scale-95 text-xs"
+                  >
+                    <Download size={14} /> Export Excel
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-100">
@@ -936,6 +1000,30 @@ export default function AdminDashboard() {
                   </div>
                 )
               })}
+            </div>
+
+            {/* Export Inventory Buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => exportInventoryXlsx(inventory, inventorySoldMap)}
+                className="flex items-center gap-1.5 bg-green-50 hover:bg-green-100 text-green-700 font-bold py-2.5 px-4 rounded-xl border border-green-200 transition-all active:scale-95 text-xs"
+              >
+                <Download size={14} /> Export Inventori (.xlsx)
+              </button>
+              <button
+                onClick={async () => {
+                  setIsSyncing(true); setSyncResult(null);
+                  const result = await syncToGoogleSheets({ transactions: history, inventory, soldMap: inventorySoldMap, expenses });
+                  setSyncResult(result); setIsSyncing(false);
+                  if (result.success) alert('✅ ' + result.message);
+                  else alert('❌ ' + result.message);
+                }}
+                disabled={isSyncing}
+                className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold py-2.5 px-4 rounded-xl border border-emerald-200 transition-all active:scale-95 text-xs disabled:opacity-50"
+              >
+                {isSyncing ? <Loader2 size={14} className="animate-spin" /> : <Sheet size={14} />}
+                {isSyncing ? 'Syncing...' : 'Sync Google Sheets'}
+              </button>
             </div>
           </div>
         )}
