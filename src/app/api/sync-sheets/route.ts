@@ -16,7 +16,13 @@ export async function POST(req: NextRequest) {
   try {
     const spreadsheetId = process.env.GOOGLE_SHEETS_ID;
     const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-    const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+    
+    // Pastikan private key bersih dari tanda petik dan menangani format newline dengan benar
+    let privateKey = process.env.GOOGLE_PRIVATE_KEY || "";
+    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+      privateKey = privateKey.slice(1, -1);
+    }
+    privateKey = privateKey.replace(/\\n/g, "\n");
 
     if (!spreadsheetId || !clientEmail || !privateKey) {
       return NextResponse.json(
