@@ -8,7 +8,8 @@ import {
   Save, Printer, Smartphone, Download, X, History, ScanLine, RotateCcw,
   Ban, ShoppingBag, BarChart3, CalendarDays, Trash2, Edit, LayoutGrid, Lock,
   DollarSign, TrendingUp, Receipt, Clock, PlusCircle, AlertCircle,
-  FileSpreadsheet, Sheet, ExternalLink, Loader2
+  FileSpreadsheet, Sheet, ExternalLink, Loader2, ArrowUpRight, ArrowDownRight,
+  ShoppingCart, PieChart as PieChartIcon,
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, PieChart, Pie, Cell, Legend } from "recharts";
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
@@ -16,6 +17,221 @@ import { exportTransactionsXlsx, exportInventoryXlsx, exportFullReportXlsx } fro
 import { syncToGoogleSheets } from "@/lib/googleSheets";
 
 const Scanner = dynamic(() => import("@/components/Scanner"), { ssr: false });
+
+type AnalyticsPeriod =
+  | "today"
+  | "thisWeek"
+  | "lastWeek"
+  | "thisMonth"
+  | "lastMonth"
+  | "thisYear"
+  | "custom";
+
+function startOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function endOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(23, 59, 59, 999);
+  return x;
+}
+
+function startOfWeekMonday(d: Date): Date {
+  const x = startOfDay(d);
+  const day = x.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  x.setDate(x.getDate() + diff);
+  return x;
+}
+
+function getAnalyticsRange(
+  period: AnalyticsPeriod,
+  customFrom: string,
+  customTo: string,
+  now: Date = new Date()
+): { start: Date; end: Date; label: string } {
+  const n = new Date(now);
+  switch (period) {
+    case "today":
+      return { start: startOfDay(n), end: endOfDay(n), label: "Hari Ini" };
+    case "thisWeek": {
+      const start = startOfWeekMonday(n);
+      return { start, end: endOfDay(n), label: "Minggu Ini" };
+    }
+    case "lastWeek": {
+      const thisMon = startOfWeekMonday(n);
+      const lastMon = new Date(thisMon);
+      lastMon.setDate(lastMon.getDate() - 7);
+      const lastSun = new Date(thisMon);
+      lastSun.setDate(lastSun.getDate() - 1);
+      return { start: startOfDay(lastMon), end: endOfDay(lastSun), label: "Minggu Lalu" };
+    }
+    case "thisMonth":
+      return {
+        start: startOfDay(new Date(n.getFullYear(), n.getMonth(), 1)),
+        end: endOfDay(n),
+        label: "Bulan Ini",
+      };
+    case "lastMonth": {
+      const first = new Date(n.getFullYear(), n.getMonth() - 1, 1);
+      const last = new Date(n.getFullYear(), n.getMonth(), 0);
+      return { start: startOfDay(first), end: endOfDay(last), label: "Bulan Lalu" };
+    }
+    case "thisYear":
+      return {
+        start: startOfDay(new Date(n.getFullYear(), 0, 1)),
+        end: endOfDay(n),
+        label: "Tahun Ini",
+      };
+    case "custom": {
+      const from = customFrom
+        ? new Date(customFrom + "T00:00:00")
+        : startOfDay(new Date(n.getFullYear(), n.getMonth(), 1));
+      const to = customTo
+        ? new Date(customTo + "T23:59:59.999")
+        : endOfDay(n);
+      return {
+        start: from,
+        end: to,
+        label:
+          customFrom && customTo
+            ? `${new Date(customFrom).toLocaleDateString("id-ID", { day: "numeric", month: "short" })} – ${new Date(customTo).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}`
+            : "Rentang Kustom",
+      };
+    }
+  }
+}
+
+function previousEqualPeriod(start: Date, end: Date): { start: Date; end: Date } {
+  const len = end.getTime() - start.getTime();
+  const prevEnd = new Date(start.getTime() - 1);
+  const prevStart = new Date(prevEnd.getTime() - len);
+  return { start: prevStart, end: prevEnd };
+}
+
+function growthPct(curr: number, prev: number): number | null {
+  if (prev === 0 && curr === 0) return 0;
+  if (prev === 0) return null;
+  return ((curr - prev) / prev) * 100;
+}
+
+/** Kategori dari nama produk/varian (tanpa kolom DB). */
+function inferSaleCategory(productName: string, variantName: string): string {
+  const s = `${productName} ${variantName}`.toLowerCase();
+  if (
+    /\b(kopi|teh|jus|susu|minuman|es |air |sprite|coca|fanta|latte|cappuccino|americano|juice|soda|pop ice|boba|matcha|mineral)\b/.test(s)
+  )
+    return "Minuman";
+  if (/\b(kerupuk|keripik|snack|biskuit|permen|coklat|gorengan|kacang|makaroni|chitato)\b/.test(s)) return "Snack";
+  if (
+    /\b(nasi|mie|ayam|ikan|sate|bakso|gado|rendang|goreng|soto|bakwan|ketoprak|pecel|burger|pizza|roti|sandwich|martabak|lontong|ketupat|opor|nugget)\b/.test(s)
+  )
+    return "Makanan";
+  return "Lainnya";
+}
+
+function aggregatePeriodMetrics(
+  history: any[],
+  expenses: any[],
+  start: Date,
+  end: Date
+) {
+  let omzet = 0;
+  let hpp = 0;
+  let trxCount = 0;
+  const payMethodMap: Record<string, number> = { Tunai: 0, QRIS: 0, Transfer: 0, Lainnya: 0 };
+  const hourMap: Record<number, number> = {};
+  for (let h = 0; h < 24; h++) hourMap[h] = 0;
+  const sellerMap: Record<string, number> = {};
+  const categoryRevenue: Record<string, number> = { Makanan: 0, Minuman: 0, Snack: 0, Lainnya: 0 };
+
+  history.forEach((trx) => {
+    if (trx.status !== "paid") return;
+    const tDate = new Date(trx.created_at);
+    if (tDate < start || tDate > end) return;
+    const amt = trx.total_amount || 0;
+    omzet += amt;
+    trxCount += 1;
+
+    let trxHpp = 0;
+    trx.transaction_items?.forEach((item: any) => {
+      trxHpp += (item.product_variants?.hpp || 0) * item.quantity;
+      const pname = item.product_variants?.products?.name || "";
+      const vname = item.product_variants?.variant_name || "";
+      const cat = inferSaleCategory(pname, vname);
+      const sub = (item.unit_price ?? item.product_variants?.price ?? 0) * item.quantity;
+      categoryRevenue[cat] = (categoryRevenue[cat] || 0) + sub;
+    });
+    hpp += trxHpp;
+
+    const pm = (trx.payment_method || "Tunai").toLowerCase();
+    if (pm.includes("qris")) payMethodMap.QRIS += amt;
+    else if (pm.includes("transfer")) payMethodMap.Transfer += amt;
+    else if (pm.includes("tunai") || pm.includes("cash") || !trx.payment_method) payMethodMap.Tunai += amt;
+    else payMethodMap.Lainnya += amt;
+
+    hourMap[tDate.getHours()] += 1;
+
+    trx.transaction_items?.forEach((item: any) => {
+      const name = item.product_variants?.variant_name || item.product_variants?.products?.name || "Unknown";
+      sellerMap[name] = (sellerMap[name] || 0) + item.quantity;
+    });
+  });
+
+  let expense = 0;
+  expenses.forEach((exp) => {
+    const eDate = new Date(exp.created_at);
+    if (eDate >= start && eDate <= end) expense += exp.amount || 0;
+  });
+
+  const netProfit = omzet - hpp - expense;
+  const aov = trxCount > 0 ? omzet / trxCount : 0;
+
+  return { omzet, hpp, expense, netProfit, trxCount, aov, payMethodMap, hourMap, sellerMap, categoryRevenue };
+}
+
+function buildTrendChartData(history: any[], start: Date, end: Date): { name: string; total: number }[] {
+  const msPerDay = 86400000;
+  const nDays = Math.floor((end.getTime() - start.getTime()) / msPerDay) + 1;
+  const points: { name: string; total: number }[] = [];
+  if (nDays <= 45) {
+    const cur = startOfDay(new Date(start));
+    const endDay = startOfDay(new Date(end));
+    while (cur <= endDay) {
+      const label = cur.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+      let total = 0;
+      history.forEach((trx) => {
+        if (trx.status !== "paid") return;
+        const td = startOfDay(new Date(trx.created_at));
+        if (td.getTime() === cur.getTime()) total += trx.total_amount || 0;
+      });
+      points.push({ name: label, total });
+      cur.setDate(cur.getDate() + 1);
+    }
+    return points;
+  }
+  let cur = startOfDay(new Date(start));
+  const endT = end.getTime();
+  while (cur.getTime() <= endT) {
+    const weekEnd = new Date(cur);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+    if (weekEnd.getTime() > endT) weekEnd.setTime(endT);
+    const label = `Mgg ${cur.getDate()}/${cur.getMonth() + 1}`;
+    let total = 0;
+    history.forEach((trx) => {
+      if (trx.status !== "paid") return;
+      const t = new Date(trx.created_at).getTime();
+      if (t >= cur.getTime() && t <= weekEnd.getTime()) total += trx.total_amount || 0;
+    });
+    points.push({ name: label, total });
+    cur.setDate(cur.getDate() + 7);
+  }
+  return points;
+}
 
 type Tab = "transactions" | "tables" | "inventory" | "history" | "analytics";
 type Role = "kasir" | "owner";
@@ -89,6 +305,10 @@ export default function AdminDashboard() {
   const [histPeriod, setHistPeriod] = useState<'today' | 'week' | 'month' | 'year' | 'custom'>('today');
   const [histCustomFrom, setHistCustomFrom] = useState('');
   const [histCustomTo, setHistCustomTo] = useState('');
+
+  const [analyticsPeriod, setAnalyticsPeriod] = useState<AnalyticsPeriod>('thisMonth');
+  const [analyticsCustomFrom, setAnalyticsCustomFrom] = useState('');
+  const [analyticsCustomTo, setAnalyticsCustomTo] = useState('');
 
   // Tables / Locations State
   const [tablesList, setTablesList] = useState<string[]>([]);
@@ -409,88 +629,106 @@ export default function AdminDashboard() {
   };
 
   const analyticsData = useMemo(() => {
-    let daily = 0, weekly = 0, monthly = 0, yearly = 0;
-    let hppDaily = 0, hppWeekly = 0, hppMonthly = 0, hppYearly = 0;
-    let trxCountToday = 0;
-    const now = new Date(); const todayStr = now.toDateString();
-    const getStartOfWeek = (d: Date) => { const x = new Date(d); x.setDate(x.getDate() - x.getDay() + 1); x.setHours(0, 0, 0, 0); return x; };
-    const getStartOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1);
-    const getStartOfYear = (d: Date) => new Date(d.getFullYear(), 0, 1);
+    const { start, end, label: rangeLabel } = getAnalyticsRange(analyticsPeriod, analyticsCustomFrom, analyticsCustomTo);
+    const { start: pStart, end: pEnd } = previousEqualPeriod(start, end);
 
-    // 7-day trend chart
-    const chartMap: Record<string, number> = {};
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(); d.setDate(d.getDate() - i);
-      chartMap[d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })] = 0;
-    }
+    const curr = aggregatePeriodMetrics(history, expenses, start, end);
+    const prev = aggregatePeriodMetrics(history, expenses, pStart, pEnd);
 
-    // Payment method pie
-    const payMethodMap: Record<string, number> = { 'Tunai': 0, 'QRIS': 0, 'Transfer': 0, 'Lainnya': 0 };
+    const msPerDay = 86400000;
+    const nDays = Math.floor((end.getTime() - start.getTime()) / msPerDay) + 1;
+    const trendGranularity = nDays <= 45 ? "Harian" : "Mingguan (agregat)";
 
-    // Rush hour count (0-23)
-    const hourMap: Record<number, number> = {};
-    for (let h = 0; h < 24; h++) hourMap[h] = 0;
+    const chartElements = buildTrendChartData(history, start, end);
+    const payMethodChart = Object.entries(curr.payMethodMap)
+      .filter(([, v]) => v > 0)
+      .map(([name, value]) => ({ name, value }));
+    const rushHourChart = Object.entries(curr.hourMap)
+      .filter(([, v]) => v > 0)
+      .map(([h, count]) => ({ name: `${h}:00`, count }));
+    const bestSellerChart = Object.entries(curr.sellerMap)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 8)
+      .map(([name, sold]) => ({ name: name.substring(0, 15), sold }));
 
-    // Best sellers map
-    const sellerMap: Record<string, number> = {};
+    const categoryChart = Object.entries(curr.categoryRevenue)
+      .filter(([, v]) => v > 0)
+      .map(([name, value]) => ({ name, value }));
 
-    history.forEach(trx => {
-      if (trx.status !== 'paid') return;
-      const tDate = new Date(trx.created_at); const amt = trx.total_amount || 0;
-
-      let trxHpp = 0;
+    const variantSold: Record<string, number> = {};
+    history.forEach((trx) => {
+      if (trx.status !== "paid") return;
+      const tDate = new Date(trx.created_at);
+      if (tDate < start || tDate > end) return;
       trx.transaction_items?.forEach((item: any) => {
-        const itemHpp = item.product_variants?.hpp || 0;
-        trxHpp += itemHpp * item.quantity;
-      });
-
-      if (tDate.toDateString() === todayStr) { daily += amt; hppDaily += trxHpp; trxCountToday++; }
-      if (tDate >= getStartOfWeek(now)) { weekly += amt; hppWeekly += trxHpp; }
-      if (tDate >= getStartOfMonth(now)) { monthly += amt; hppMonthly += trxHpp; }
-      if (tDate >= getStartOfYear(now)) { yearly += amt; hppYearly += trxHpp; }
-      const label = tDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
-      if (chartMap[label] !== undefined) chartMap[label] += amt;
-
-      // Payment method
-      const pm = (trx.payment_method || 'Tunai').toLowerCase();
-      if (pm.includes('qris')) payMethodMap['QRIS'] += amt;
-      else if (pm.includes('transfer')) payMethodMap['Transfer'] += amt;
-      else if (pm.includes('tunai') || pm.includes('cash') || !trx.payment_method) payMethodMap['Tunai'] += amt;
-      else payMethodMap['Lainnya'] += amt;
-
-      // Rush hour
-      hourMap[tDate.getHours()]++;
-
-      // Best sellers
-      trx.transaction_items?.forEach((item: any) => {
-        const name = item.product_variants?.variant_name || item.product_variants?.products?.name || 'Unknown';
-        sellerMap[name] = (sellerMap[name] || 0) + item.quantity;
+        if (item.variant_id) {
+          variantSold[item.variant_id] = (variantSold[item.variant_id] || 0) + item.quantity;
+        }
       });
     });
 
-    // Expense calculations
-    let expenseDaily = 0, expenseMonthly = 0;
-    expenses.forEach(exp => {
-      const eDate = new Date(exp.created_at);
-      if (eDate.toDateString() === todayStr) expenseDaily += (exp.amount || 0);
-      if (eDate >= getStartOfMonth(now)) expenseMonthly += (exp.amount || 0);
-    });
+    const worstSellerChart = [...inventory]
+      .map((inv: any) => ({
+        name: (inv.variant_name || inv.products?.name || "?").substring(0, 18),
+        sold: variantSold[inv.id] || 0,
+      }))
+      .sort((a, b) => a.sold - b.sold)
+      .slice(0, 8);
 
-    const payMethodChart = Object.entries(payMethodMap).filter(([, v]) => v > 0).map(([name, value]) => ({ name, value }));
-    const rushHourChart = Object.entries(hourMap).filter(([, v]) => v > 0).map(([h, count]) => ({ name: `${h}:00`, count }));
-    const bestSellerChart = Object.entries(sellerMap).sort(([, a], [, b]) => b - a).slice(0, 8).map(([name, sold]) => ({ name: name.substring(0, 15), sold }));
+    const lowStockItems = [...inventory]
+      .sort((a: any, b: any) => (a.stock ?? 0) - (b.stock ?? 0))
+      .slice(0, 5)
+      .map((i: any) => ({
+        id: i.id,
+        name: (i.variant_name || i.products?.name || "?").substring(0, 28),
+        stock: i.stock ?? 0,
+        barcode: i.barcode || "",
+      }));
 
     return {
-      daily, weekly, monthly, yearly, trxCountToday,
-      expenseDaily, expenseMonthly, hppDaily, hppMonthly,
-      netProfitDaily: daily - expenseDaily - hppDaily,
-      netProfitMonthly: monthly - expenseMonthly - hppMonthly,
-      chartElements: Object.keys(chartMap).map(k => ({ name: k, total: chartMap[k] })),
-      payMethodChart, rushHourChart, bestSellerChart
+      rangeLabel,
+      trendGranularity,
+      omzet: curr.omzet,
+      hpp: curr.hpp,
+      expense: curr.expense,
+      netProfit: curr.netProfit,
+      trxCount: curr.trxCount,
+      aov: curr.aov,
+      prevOmzet: prev.omzet,
+      prevHpp: prev.hpp,
+      prevExpense: prev.expense,
+      prevNet: prev.netProfit,
+      prevAov: prev.aov,
+      growthOmzet: growthPct(curr.omzet, prev.omzet),
+      growthHpp: growthPct(curr.hpp, prev.hpp),
+      growthExpense: growthPct(curr.expense, prev.expense),
+      growthNet: growthPct(curr.netProfit, prev.netProfit),
+      growthAov: growthPct(curr.aov, prev.aov),
+      chartElements,
+      payMethodChart,
+      rushHourChart,
+      bestSellerChart,
+      worstSellerChart,
+      categoryChart,
+      lowStockItems,
     };
-  }, [history, expenses]);
+  }, [history, expenses, inventory, analyticsPeriod, analyticsCustomFrom, analyticsCustomTo]);
 
-  const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
+  const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1'];
+
+  const formatGrowthLine = (pct: number | null) => {
+    if (pct === null) {
+      return <p className="text-[10px] text-gray-400 mt-1 font-medium">Tanpa pembanding (periode lalu Rp 0)</p>;
+    }
+    const up = pct >= 0;
+    return (
+      <p className={`text-[10px] mt-1 font-bold flex items-center gap-0.5 ${up ? "text-emerald-600" : "text-red-600"}`}>
+        {up ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+        {up ? "+" : ""}
+        {pct.toFixed(1)}% vs periode sebelumnya
+      </p>
+    );
+  };
 
   // Compute sold per variant from history, filtered by period
   const inventorySoldMap = useMemo(() => {
@@ -689,40 +927,99 @@ export default function AdminDashboard() {
         {activeTab === "analytics" && authRole === 'owner' && (
           <div className="space-y-6 animate-in fade-in duration-300">
 
-            {/* === SECTION 1: KEY METRICS === */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <div className="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-l-blue-500">
-                <p className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><DollarSign size={12} /> Omzet Hari Ini</p>
-                <p className="text-xl font-black text-slate-800 mt-1">Rp {analyticsData.daily.toLocaleString('id-ID')}</p>
+            {/* Filter periode Analytics */}
+            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+              <p className="text-[10px] font-bold text-gray-400 uppercase mb-2 flex items-center gap-2"><CalendarDays size={14} /> Periode laporan</p>
+              <p className="text-xs text-slate-600 font-semibold mb-3">{analyticsData.rangeLabel}</p>
+              <div className="flex flex-wrap gap-2">
+                {([
+                  ["today", "Hari Ini"],
+                  ["thisWeek", "Minggu Ini"],
+                  ["lastWeek", "Minggu Lalu"],
+                  ["thisMonth", "Bulan Ini"],
+                  ["lastMonth", "Bulan Lalu"],
+                  ["thisYear", "Tahun Ini"],
+                  ["custom", "Rentang tanggal"],
+                ] as const).map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setAnalyticsPeriod(key)}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-lg border transition-all ${analyticsPeriod === key ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-500 border-gray-200 hover:border-blue-300"}`}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
-              <div className="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-l-orange-400">
-                <p className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><PackageSearch size={12} /> Modal (HPP) Hari Ini</p>
-                <p className="text-xl font-black text-orange-600 mt-1">Rp {analyticsData.hppDaily.toLocaleString('id-ID')}</p>
-              </div>
-              <div className="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-l-red-400">
-                <p className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><Receipt size={12} /> Operasional Hari Ini</p>
-                <p className="text-xl font-black text-red-600 mt-1">Rp {analyticsData.expenseDaily.toLocaleString('id-ID')}</p>
-              </div>
-              <div className={`bg-white p-4 rounded-2xl shadow-sm border-l-4 ${analyticsData.netProfitDaily >= 0 ? 'border-l-green-500' : 'border-l-red-500'}`}>
-                <p className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><TrendingUp size={12} /> Laba Bersih Hari Ini</p>
-                <p className={`text-xl font-black mt-1 ${analyticsData.netProfitDaily >= 0 ? 'text-green-600' : 'text-red-600'}`}>Rp {analyticsData.netProfitDaily.toLocaleString('id-ID')}</p>
-              </div>
+              {analyticsPeriod === "custom" && (
+                <div className="flex flex-wrap gap-2 mt-3 items-center">
+                  <input
+                    type="date"
+                    value={analyticsCustomFrom}
+                    onChange={(e) => setAnalyticsCustomFrom(e.target.value)}
+                    className="flex-1 min-w-[140px] border border-gray-300 rounded-lg p-2 text-sm"
+                  />
+                  <span className="text-gray-400 text-sm">s/d</span>
+                  <input
+                    type="date"
+                    value={analyticsCustomTo}
+                    onChange={(e) => setAnalyticsCustomTo(e.target.value)}
+                    className="flex-1 min-w-[140px] border border-gray-300 rounded-lg p-2 text-sm"
+                  />
+                </div>
+              )}
+              <p className="text-[10px] text-gray-400 mt-3">
+                Semua metrik & grafik di bawah mengikuti periode ini. Pembanding % adalah rentang waktu dengan durasi sama sebelum periode terpilih.
+              </p>
+            </div>
 
-              <div className="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-l-purple-500">
-                <p className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><CalendarDays size={12} /> Omzet Bulan Ini</p>
-                <p className="text-xl font-black text-slate-800 mt-1">Rp {analyticsData.monthly.toLocaleString('id-ID')}</p>
+            {/* Peringatan stok menipis */}
+            {analyticsData.lowStockItems.length > 0 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                <h3 className="text-sm font-bold text-amber-900 flex items-center gap-2 mb-3">
+                  <AlertCircle size={18} /> Stok menipis — prioritas kulakan
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+                  {analyticsData.lowStockItems.map((row) => (
+                    <div key={row.id} className="bg-white rounded-xl px-3 py-2 border border-amber-100 shadow-sm">
+                      <p className="text-xs font-bold text-slate-800 truncate" title={row.name}>{row.name}</p>
+                      <p className="text-[10px] text-gray-500 font-mono truncate">{row.barcode || "—"}</p>
+                      <p className={`text-sm font-black mt-1 ${row.stock <= 5 ? "text-red-600" : "text-amber-700"}`}>
+                        Sisa: {row.stock} pcs
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Ringkasan + pertumbuhan + AOV */}
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+              <div className="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-l-blue-500">
+                <p className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><DollarSign size={12} /> Omzet</p>
+                <p className="text-lg sm:text-xl font-black text-slate-800 mt-1">Rp {analyticsData.omzet.toLocaleString("id-ID")}</p>
+                {formatGrowthLine(analyticsData.growthOmzet)}
               </div>
               <div className="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-l-orange-400">
-                <p className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><PackageSearch size={12} /> Modal (HPP) Bulan Ini</p>
-                <p className="text-xl font-black text-orange-600 mt-1">Rp {analyticsData.hppMonthly.toLocaleString('id-ID')}</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><PackageSearch size={12} /> Modal (HPP)</p>
+                <p className="text-lg sm:text-xl font-black text-orange-600 mt-1">Rp {analyticsData.hpp.toLocaleString("id-ID")}</p>
+                {formatGrowthLine(analyticsData.growthHpp)}
               </div>
               <div className="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-l-red-400">
-                <p className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><Receipt size={12} /> Operasional Bulan Ini</p>
-                <p className="text-xl font-black text-red-600 mt-1">Rp {analyticsData.expenseMonthly.toLocaleString('id-ID')}</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><Receipt size={12} /> Operasional</p>
+                <p className="text-lg sm:text-xl font-black text-red-600 mt-1">Rp {analyticsData.expense.toLocaleString("id-ID")}</p>
+                {formatGrowthLine(analyticsData.growthExpense)}
               </div>
-              <div className={`bg-white p-4 rounded-2xl shadow-sm border-l-4 ${analyticsData.netProfitMonthly >= 0 ? 'border-l-emerald-500' : 'border-l-red-500'}`}>
-                <p className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><TrendingUp size={12} /> Laba Bersih Bulan Ini</p>
-                <p className={`text-xl font-black mt-1 ${analyticsData.netProfitMonthly >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>Rp {analyticsData.netProfitMonthly.toLocaleString('id-ID')}</p>
+              <div className={`bg-white p-4 rounded-2xl shadow-sm border-l-4 ${analyticsData.netProfit >= 0 ? "border-l-green-500" : "border-l-red-500"}`}>
+                <p className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><TrendingUp size={12} /> Laba bersih</p>
+                <p className={`text-lg sm:text-xl font-black mt-1 ${analyticsData.netProfit >= 0 ? "text-green-600" : "text-red-600"}`}>Rp {analyticsData.netProfit.toLocaleString("id-ID")}</p>
+                {formatGrowthLine(analyticsData.growthNet)}
+              </div>
+              <div className="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-l-indigo-500 col-span-2 lg:col-span-1">
+                <p className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><ShoppingCart size={12} /> Rata-rata struk (AOV)</p>
+                <p className="text-lg sm:text-xl font-black text-indigo-700 mt-1">Rp {Math.round(analyticsData.aov).toLocaleString("id-ID")}</p>
+                <p className="text-[10px] text-gray-500 mt-0.5">{analyticsData.trxCount} transaksi lunas</p>
+                {formatGrowthLine(analyticsData.growthAov)}
               </div>
             </div>
 
@@ -756,7 +1053,8 @@ export default function AdminDashboard() {
 
             {/* === SECTION 2: GRAFIK TREN PENJUALAN (LINE CHART) === */}
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-              <h3 className="text-sm font-bold text-gray-800 mb-4 uppercase tracking-wider flex items-center gap-2"><TrendingUp size={16} /> Tren Penjualan (7 Hari)</h3>
+              <h3 className="text-sm font-bold text-gray-800 mb-1 uppercase tracking-wider flex items-center gap-2"><TrendingUp size={16} /> Tren penjualan</h3>
+              <p className="text-[10px] text-gray-400 mb-4">{analyticsData.rangeLabel} · {analyticsData.trendGranularity}</p>
               <div className="h-56 w-full"><ResponsiveContainer width="100%" height="100%">
                 <LineChart data={analyticsData.chartElements}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
@@ -799,6 +1097,63 @@ export default function AdminDashboard() {
                     </BarChart>
                   </ResponsiveContainer></div>
                 ) : <p className="text-gray-400 text-center py-10 text-sm">Belum ada data penjualan</p>}
+              </div>
+            </div>
+
+            {/* Kategori (pie) + Kurang laris */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                <h3 className="text-sm font-bold text-gray-800 mb-1 uppercase tracking-wider flex items-center gap-2">
+                  <PieChartIcon size={16} /> Penjualan per kategori
+                </h3>
+                <p className="text-[10px] text-gray-400 mb-4">Estimasi dari nama produk (Makanan / Minuman / Snack / Lainnya)</p>
+                {analyticsData.categoryChart.length > 0 ? (
+                  <div className="h-52">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={analyticsData.categoryChart}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={40}
+                          outerRadius={72}
+                          paddingAngle={3}
+                          label={(props: any) => `${props.name ?? ""} ${((props.percent ?? 0) * 100).toFixed(0)}%`}
+                        >
+                          {analyticsData.categoryChart.map((_: unknown, i: number) => (
+                            <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(v: any) => `Rp ${Number(v ?? 0).toLocaleString("id-ID")}`} />
+                        <Legend wrapperStyle={{ fontSize: 11 }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <p className="text-gray-400 text-center py-10 text-sm">Belum ada penjualan di periode ini</p>
+                )}
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                <h3 className="text-sm font-bold text-gray-800 mb-1 uppercase tracking-wider">📉 Kurang laris (dead stock)</h3>
+                <p className="text-[10px] text-gray-400 mb-4">Unit terjual di periode ini — rendah ke tinggi</p>
+                {analyticsData.worstSellerChart.length > 0 ? (
+                  <div className="h-52">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={analyticsData.worstSellerChart} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.3} />
+                        <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#6b7280" }} allowDecimals={false} />
+                        <YAxis type="category" dataKey="name" width={100} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#374151" }} />
+                        <Tooltip formatter={(v: any) => [`${v ?? 0} pcs`, "Terjual"]} contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 4px 12px rgb(0 0 0 / 0.1)" }} />
+                        <Bar dataKey="sold" fill="#94a3b8" radius={[0, 4, 4, 0]} barSize={18} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <p className="text-gray-400 text-center py-10 text-sm">Belum ada data inventori</p>
+                )}
               </div>
             </div>
 
