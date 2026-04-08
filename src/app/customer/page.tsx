@@ -443,72 +443,74 @@ export default function CustomerPage() {
 
       {/* ================= LOCK SCREEN MODAL RECEIPT CUSTOMER ================= */}
       {receiptData && (
-        <div className="fixed inset-0 bg-slate-900 backdrop-blur-md z-50 flex items-center justify-center p-4 min-h-screen overflow-y-auto">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
-            <div className="bg-green-500 p-8 text-center text-white relative">
-              <Lock size={48} className="mx-auto mb-3 opacity-90" />
-              <h2 className="text-3xl font-black tracking-tight leading-none mb-2">Keranjang Dikunci</h2>
-              <p className="text-green-100 text-sm font-medium bg-green-600/50 p-2 rounded-xl mt-3 flex items-center justify-center gap-2"><Info size={16} /> Silakan tunjukkan layar ini ke kasir</p>
-            </div>
-
-            {/* The Actual Receipt Layout for printing/screenshot */}
-            <div id="customer-receipt" className="p-6 bg-slate-50 font-mono text-xs text-black">
-              <div className="text-center font-bold text-base mb-1">KEDAI KELUARGA</div>
-              <div className="text-center mb-4 text-gray-500">Struk Antrean • Tunjukkan ke Kasir</div>
-              <div className="border-b-2 border-dashed border-gray-300 mb-4"></div>
-
-              <div className="flex justify-between mb-1">
-                <span className="text-gray-500">Nama Pemesan:</span>
-                <span className="font-bold uppercase text-sm">{receiptData.name}</span>
-              </div>
-              <div className="flex justify-between mb-1">
-                <span className="text-gray-500">Meja:</span>
-                <span className="font-bold uppercase text-sm">{receiptData.table}</span>
-              </div>
-              <div className="flex justify-between mb-4">
-                <span className="text-gray-500">Waktu:</span>
-                <span className="font-medium">{new Date().toLocaleString('id-ID')}</span>
+        <div className="fixed inset-0 bg-slate-900 backdrop-blur-md z-50 overflow-y-auto no-print">
+          <div className="min-h-full flex items-center justify-center p-4">
+            <div className="bg-white rounded-[2.5rem] w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+              <div className="bg-green-500 p-8 text-center text-white relative">
+                <Lock size={48} className="mx-auto mb-3 opacity-90" />
+                <h2 className="text-3xl font-black tracking-tight leading-none mb-2">Keranjang Dikunci</h2>
+                <p className="text-green-100 text-sm font-medium bg-green-600/50 p-2 rounded-xl mt-3 flex items-center justify-center gap-2"><Info size={16} /> Silakan tunjukkan layar ini ke kasir</p>
               </div>
 
-              <div className="border-b-2 border-dashed border-gray-300 mb-4"></div>
+              {/* The Actual Receipt Layout for printing/screenshot */}
+              <div id="customer-receipt" className="p-6 bg-slate-50 font-mono text-xs text-black">
+                <div className="text-center font-bold text-base mb-1">KEDAI KELUARGA</div>
+                <div className="text-center mb-4 text-gray-500">Struk Antrean • Tunjukkan ke Kasir</div>
+                <div className="border-b-2 border-dashed border-gray-300 mb-4"></div>
 
-              <div className="space-y-3 mb-4">
-                {receiptData.items.map((item: any, i: number) => (
-                  <div key={i}>
-                    <div className="font-bold text-gray-800">{item.variant.variant_name || item.variant.products?.name || "Item"}</div>
-                    <div className="flex justify-between text-gray-600 mt-0.5">
-                      <span>{item.quantity} x {(item.variant.price || 0).toLocaleString('id-ID')}</span>
-                      <span className="font-bold text-gray-900">{(item.quantity * (item.variant.price || 0)).toLocaleString('id-ID')}</span>
+                <div className="flex justify-between mb-1">
+                  <span className="text-gray-500">Nama Pemesan:</span>
+                  <span className="font-bold uppercase text-sm">{receiptData.name}</span>
+                </div>
+                <div className="flex justify-between mb-1">
+                  <span className="text-gray-500">Meja:</span>
+                  <span className="font-bold uppercase text-sm">{receiptData.table}</span>
+                </div>
+                <div className="flex justify-between mb-4">
+                  <span className="text-gray-500">Waktu:</span>
+                  <span className="font-medium">{new Date().toLocaleString('id-ID')}</span>
+                </div>
+
+                <div className="border-b-2 border-dashed border-gray-300 mb-4"></div>
+
+                <div className="space-y-3 mb-4">
+                  {receiptData.items.map((item: any, i: number) => (
+                    <div key={i}>
+                      <div className="font-bold text-gray-800">{item.variant.variant_name || item.variant.products?.name || "Item"}</div>
+                      <div className="flex justify-between text-gray-600 mt-0.5">
+                        <span>{item.quantity} x {(item.variant.price || 0).toLocaleString('id-ID')}</span>
+                        <span className="font-bold text-gray-900">{(item.quantity * (item.variant.price || 0)).toLocaleString('id-ID')}</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+
+                <div className="border-b-2 border-dashed border-gray-300 mb-4"></div>
+
+                <div className="flex justify-between text-base font-black text-gray-900 mb-4">
+                  <span>TOTAL</span>
+                  <span className="text-lg">Rp {receiptData.total.toLocaleString('id-ID')}</span>
+                </div>
+
+                <div className="text-center text-[10px] text-gray-400 mt-6 pt-4 border-t border-gray-200">
+                  ID: {receiptData.transactionId}
+                </div>
               </div>
 
-              <div className="border-b-2 border-dashed border-gray-300 mb-4"></div>
-
-              <div className="flex justify-between text-base font-black text-gray-900 mb-4">
-                <span>TOTAL</span>
-                <span className="text-lg">Rp {receiptData.total.toLocaleString('id-ID')}</span>
+              <div className="p-5 bg-white border-t border-gray-200 no-print space-y-2">
+                <button
+                  onClick={handleDownloadReceipt}
+                  className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-2xl transition-all active:scale-95"
+                >
+                  <Download size={18} /> Download / Cetak Struk
+                </button>
+                <button
+                  onClick={() => { setReceiptData(null); window.scrollTo(0, 0); }}
+                  className="w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3.5 px-4 rounded-2xl transition-all"
+                >
+                  Buat Pesanan Baru
+                </button>
               </div>
-
-              <div className="text-center text-[10px] text-gray-400 mt-6 pt-4 border-t border-gray-200">
-                ID: {receiptData.transactionId}
-              </div>
-            </div>
-
-            <div className="p-5 bg-white border-t border-gray-200 no-print space-y-2">
-              <button
-                onClick={handleDownloadReceipt}
-                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-2xl transition-all active:scale-95"
-              >
-                <Download size={18} /> Download / Cetak Struk
-              </button>
-              <button
-                onClick={() => { setReceiptData(null); window.scrollTo(0, 0); }}
-                className="w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3.5 px-4 rounded-2xl transition-all"
-              >
-                Buat Pesanan Baru
-              </button>
             </div>
           </div>
         </div>
