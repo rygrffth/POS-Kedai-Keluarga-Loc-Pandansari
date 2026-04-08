@@ -832,7 +832,7 @@ export default function AdminDashboard() {
           <h2 className="text-2xl font-black text-center text-slate-800 mb-2">POS Login</h2>
           <p className="text-center text-gray-500 mb-6 text-sm">Masukkan PIN Kasir atau PIN Owner.</p>
           <form onSubmit={handleLogin} className="space-y-4">
-            <input type="password" value={pinInput} onChange={e => setPinInput(e.target.value)} placeholder="Masukkan Password" className="w-full text-center text-lg bg-gray-50 border border-gray-200 rounded-2xl px-4 py-4 focus:ring-4 focus:ring-blue-500 outline-none transition-all font-mono" autoFocus />
+            <input type="password" value={pinInput} onChange={e => setPinInput(e.target.value)} placeholder="Masukkan Password" className="w-full text-center text-lg bg-gray-50 border border-gray-200 rounded-2xl px-4 py-4 focus:ring-4 focus:ring-blue-500 outline-none transition-all font-mono text-slate-900" autoFocus />
             <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg active:scale-95 text-lg">Masuk</button>
           </form>
         </div>
