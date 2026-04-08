@@ -30,7 +30,9 @@ export default function CustomerPage() {
 
   const [mounted, setMounted] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
+  const [scannerMode, setScannerMode] = useState<'hardware' | 'camera'>('hardware');
   const [bestSellers, setBestSellers] = useState<any[]>([]);
+
 
   // Konfirmasi scan state - REMOVED for instant scan
   // const [pendingScannedItem, setPendingScannedItem] = useState<any | null>(null);
@@ -70,7 +72,9 @@ export default function CustomerPage() {
   const handleBatalScan = async () => {
     if (scannerRef.current) await scannerRef.current.stopScanner();
     setCameraActive(false);
+    setScannerMode('hardware');
   };
+
 
   useBarcodeScanner((barcode) => {
     if (!isCheckingOut) {
@@ -271,40 +275,68 @@ export default function CustomerPage() {
         )}
 
         {/* SCANNER AREA */}
-        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex flex-col items-center">
-          <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-4">
-            <ScanLine size={32} />
-          </div>
-          <h2 className="text-xl font-black text-gray-800 mb-2">Scan Barcode</h2>
-          <p className="text-gray-500 text-sm text-center mb-6">Arahkan kamera ke barcode produk</p>
-
-          <div className="w-full aspect-square max-w-[300px] bg-slate-900 rounded-3xl overflow-hidden shadow-inner border-4 border-slate-100 relative mb-4">
-            {!cameraActive ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-white bg-slate-800">
-                <AlertCircle size={40} className="mb-3 opacity-50" />
-                <p className="font-semibold">Kamera Nonaktif</p>
-                <button onClick={() => setCameraActive(true)} className="mt-4 bg-white text-slate-900 px-6 py-2 rounded-xl font-bold text-sm shadow-lg hover:bg-slate-100 active:scale-95 transition-all">Nyalakan Kamera</button>
+        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex flex-col items-center overflow-hidden transition-all duration-500">
+          
+          {scannerMode === 'hardware' ? (
+            <div className="w-full flex flex-col items-center py-4 animate-in fade-in zoom-in-95 duration-500">
+              <div className="relative mb-6">
+                <div className="absolute inset-0 bg-green-500/10 rounded-full animate-ping duration-[3000ms]" />
+                <div className="w-20 h-20 bg-green-50 text-green-600 rounded-full flex items-center justify-center relative z-10 border-2 border-green-100">
+                  <ScanLine size={38} className="animate-pulse" />
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                </div>
               </div>
-            ) : (
-              <Scanner ref={scannerRef} onScan={handleScan} />
-            )}
-            <div className="absolute inset-x-8 inset-y-8 border-2 border-white/30 border-dashed rounded-2xl pointer-events-none" />
-          </div>
-
-          {cameraActive && (
-            <button onClick={handleBatalScan} className="mb-6 bg-red-50 text-red-600 px-8 py-3 rounded-2xl font-bold text-sm shadow-sm hover:bg-red-100 active:scale-95 transition-all w-full max-w-[300px] border border-red-200">
-              Batalkan Kamera
-            </button>
+              
+              <h2 className="text-xl font-black text-gray-800 mb-1">Siap Mendeteksi</h2>
+              <p className="text-gray-400 text-xs text-center mb-6 px-4">Sistem standby. Silakan scan barcode barang Anda menggunakan alat scanner.</p>
+              
+              <div className="flex flex-col w-full gap-3">
+                <button 
+                  onClick={() => { setScannerMode('camera'); setCameraActive(true); }}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 border border-slate-200 shadow-sm active:scale-95"
+                >
+                  <Maximize size={14} /> Gunakan Kamera
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="w-full animate-in fade-in slide-in-from-top-4 duration-500">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-sm font-black text-gray-800 uppercase tracking-widest flex items-center gap-2">
+                  <ScanLine size={16} className="text-blue-600" /> Mode Kamera
+                </h2>
+                <button onClick={handleBatalScan} className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div className="w-full aspect-square max-w-[280px] mx-auto bg-slate-900 rounded-3xl overflow-hidden shadow-inner border-4 border-slate-100 relative mb-4">
+                {!cameraActive ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-white bg-slate-800">
+                    <AlertCircle size={40} className="mb-3 opacity-50" />
+                    <p className="font-semibold text-sm">Kamera Nonaktif</p>
+                    <button onClick={() => setCameraActive(true)} className="mt-4 bg-white text-slate-900 px-6 py-2 rounded-xl font-bold text-xs shadow-lg hover:bg-slate-100 active:scale-95 transition-all">Nyalakan Kamera</button>
+                  </div>
+                ) : (
+                  <Scanner ref={scannerRef} onScan={handleScan} />
+                )}
+                <div className="absolute inset-x-8 inset-y-8 border-2 border-white/30 border-dashed rounded-2xl pointer-events-none" />
+              </div>
+              
+              <p className="text-[10px] text-center text-gray-400 font-medium px-4 mb-2">Arahkan barcode ke dalam kotak untuk memindai otomatis</p>
+            </div>
           )}
 
-          <div className="w-full relative">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200"></div></div>
-            <div className="relative flex justify-center text-xs"><span className="bg-white px-4 text-gray-400 font-medium">atau ketik manual</span></div>
+          <div className="w-full relative my-6">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-100"></div></div>
+            <div className="relative flex justify-center text-[10px]"><span className="bg-white px-4 text-gray-300 font-bold uppercase tracking-widest">atau ketik manual</span></div>
           </div>
 
-          <div className="flex w-full mt-6 gap-2">
+          <div className="flex w-full gap-2">
             <div className="relative flex-1">
-              <input type="text" placeholder="Contoh: 89912345678" className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 pl-4 pr-10 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400" value={manualCode} onChange={e => setManualCode(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && manualCode) handleScan(manualCode); }} />
+              <input type="text" placeholder="Masukkan kode barang..." className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 pl-4 pr-10 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400 placeholder:font-normal" value={manualCode} onChange={e => setManualCode(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && manualCode) handleScan(manualCode); }} />
             </div>
             <button onClick={() => { if (manualCode) handleScan(manualCode); }} className="bg-blue-600 hover:bg-blue-700 text-white p-3.5 rounded-2xl shadow-lg shadow-blue-500/30 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center" disabled={!manualCode}>
               <Search size={20} />
