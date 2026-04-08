@@ -280,6 +280,7 @@ export default function AdminDashboard() {
   const [newProductHpp, setNewProductHpp] = useState<number | "">("");
   const [newProductStock, setNewProductStock] = useState<number | "">("");
   const [newProductImage, setNewProductImage] = useState("");
+  const [newProductCategory, setNewProductCategory] = useState<string>("Makanan");
   const [isRegistering, setIsRegistering] = useState(false);
 
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
@@ -289,6 +290,7 @@ export default function AdminDashboard() {
   const [editProductStock, setEditProductStock] = useState<number | "">("");
   const [editProductBarcode, setEditProductBarcode] = useState("");
   const [editProductImage, setEditProductImage] = useState("");
+  const [editProductCategory, setEditProductCategory] = useState<string>("Lainnya");
   const [isUpdatingProduct, setIsUpdatingProduct] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -517,7 +519,7 @@ export default function AdminDashboard() {
       const { data: prodData, error: prodErr } = await supabase.from("products").insert([{ name: newProductName }]).select().single();
       if (prodErr) throw new Error(prodErr.message);
       const { error: variantErr } = await supabase.from("product_variants").insert([{
-        product_id: prodData.id, barcode: manualBarcode, price: Number(newProductPrice), stock: Number(newProductStock), hpp: Number(newProductHpp), variant_name: newProductName, image_url: newProductImage
+        product_id: prodData.id, barcode: manualBarcode, price: Number(newProductPrice), stock: Number(newProductStock), hpp: Number(newProductHpp), variant_name: newProductName, image_url: newProductImage, category: newProductCategory
       }]);
       if (variantErr) throw new Error(variantErr.message);
 
@@ -543,6 +545,7 @@ export default function AdminDashboard() {
     setEditProductStock(item.stock || 0);
     setEditProductBarcode(item.barcode || "");
     setEditProductImage(item.image_url || "");
+    setEditProductCategory(item.category || "Lainnya");
   };
 
   const handleUpdateProduct = async () => {
@@ -550,7 +553,7 @@ export default function AdminDashboard() {
     try {
       if (editingProduct.product_id) await supabase.from("products").update({ name: editProductName }).eq("id", editingProduct.product_id);
       const { error } = await supabase.from("product_variants").update({
-        variant_name: editProductName, price: Number(editProductPrice), stock: Number(editProductStock), hpp: Number(editProductHpp), barcode: editProductBarcode, image_url: editProductImage
+        variant_name: editProductName, price: Number(editProductPrice), stock: Number(editProductStock), hpp: Number(editProductHpp), barcode: editProductBarcode, image_url: editProductImage, category: editProductCategory
       }).eq("id", editingProduct.id);
 
       if (error) throw error;
@@ -1345,6 +1348,16 @@ export default function AdminDashboard() {
                 <div className="mt-5 bg-orange-50 p-5 rounded-xl border border-orange-200 space-y-3">
                   <p className="font-bold text-orange-600 mb-2">Registrasi Produk Baru</p>
                   <input type="text" placeholder="Nama Produk" className="w-full border p-3 rounded-xl text-sm text-slate-900 font-bold" value={newProductName} onChange={e => setNewProductName(e.target.value)} />
+                  
+                  <div className="bg-white p-3 border rounded-xl">
+                    <p className="text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest">Pilih Kategori</p>
+                    <div className="flex gap-2">
+                      {['Makanan', 'Minuman', 'Lainnya'].map(cat => (
+                        <button key={cat} onClick={() => setNewProductCategory(cat)} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all border ${newProductCategory === cat ? 'bg-orange-500 text-white border-orange-500 shadow-sm' : 'bg-gray-50 text-gray-400 border-gray-200'}`}>{cat}</button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="flex gap-3"><input type="number" placeholder="Rp Jual" className="flex-1 border p-3 rounded-xl text-sm text-slate-900 font-bold" value={newProductPrice} onChange={e => setNewProductPrice(Number(e.target.value) || "")} /><input type="number" placeholder="Rp HPP/Modal" className="flex-1 border p-3 rounded-xl text-sm text-slate-900 font-bold" value={newProductHpp} onChange={e => setNewProductHpp(Number(e.target.value) || "")} /><input type="number" placeholder="Stok Awal" className="flex-1 border p-3 rounded-xl text-sm text-slate-900 font-bold" value={newProductStock} onChange={e => setNewProductStock(Number(e.target.value) || "")} /></div>
 
                   <div className="bg-white p-3 border rounded-xl">
@@ -1427,6 +1440,16 @@ export default function AdminDashboard() {
             <h3 className="font-bold text-slate-800 border-b pb-3 flex justify-between">Ubah Data <X size={20} className="cursor-pointer" onClick={() => setEditingProduct(null)} /></h3>
             <div><label className="text-xs font-bold text-gray-600 block mb-1">Nama Produk</label><input type="text" className="w-full border p-3 rounded-xl text-sm text-slate-900 font-bold" value={editProductName} onChange={(e) => setEditProductName(e.target.value)} /></div>
             <div><label className="text-xs font-bold text-gray-600 block mb-1">Kode Barcode / SKU</label><input type="text" className="w-full border p-3 rounded-xl text-sm text-slate-900 font-bold" value={editProductBarcode} onChange={(e) => setEditProductBarcode(e.target.value)} /></div>
+            
+            <div className="bg-slate-50 p-3 border rounded-xl">
+              <label className="text-[10px] font-bold text-gray-400 block mb-2 uppercase tracking-widest">Kategori Produk</label>
+              <div className="flex gap-2">
+                {['Makanan', 'Minuman', 'Lainnya'].map(cat => (
+                  <button key={cat} onClick={() => setEditProductCategory(cat)} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all border ${editProductCategory === cat ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-gray-400 border-gray-200'}`}>{cat}</button>
+                ))}
+              </div>
+            </div>
+
             <div className="flex gap-4"><div className="flex-1"><label className="text-xs font-bold text-gray-600 block mb-1">Harga Jual (Rp)</label><input type="number" className="w-full border p-3 rounded-xl text-sm text-slate-900 font-medium" value={editProductPrice} onChange={(e) => setEditProductPrice(Number(e.target.value) || "")} /></div><div className="flex-1"><label className="text-xs font-bold text-gray-600 block mb-1">HPP / Modal (Rp)</label><input type="number" className="w-full border p-3 rounded-xl text-sm text-slate-900 font-medium" value={editProductHpp} onChange={(e) => setEditProductHpp(Number(e.target.value) || "")} /></div><div className="flex-1"><label className="text-xs font-bold text-gray-600 block mb-1">Stok</label><input type="number" className="w-full border p-3 rounded-xl text-sm text-slate-900 font-medium" value={editProductStock} onChange={(e) => setEditProductStock(Number(e.target.value) || "")} /></div></div>
 
             <div className="bg-slate-50 p-3 border rounded-xl">
@@ -1451,38 +1474,40 @@ export default function AdminDashboard() {
 
       {/* Modal Transaction */}
       {viewingTrx && (
-        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl flex flex-col my-8">
-            <div className={`p-4 border-b flex justify-between items-center ${viewingTrx.status === 'paid' ? 'bg-green-100' : 'bg-slate-100'}`}><h3 className="font-bold flex items-center gap-2">{viewingTrx.status === 'paid' ? 'LUNAS' : viewingTrx.status === 'cancelled' ? 'BATAL' : 'DETAIL TRANSAKSI'}</h3></div>
-            <div id="printable-receipt" className="p-5 font-mono text-xs sm:text-sm text-black">
-              <div className="text-center font-bold text-lg">Kedai Keluarga</div><div className="border-b-2 border-dashed border-gray-400 my-2"></div>
-              <div className="flex justify-between"><span>Plg:</span><span className="font-bold">{viewingTrx.customer_name || '-'}</span></div>
-              <div className="flex justify-between"><span>Meja:</span><span className="font-bold uppercase">{viewingTrx.table_number || '-'}</span></div>
-              <div className="flex justify-between mb-2"><span>Tgl:</span><span>{new Date(viewingTrx.created_at).toLocaleString('id-ID')}</span></div>
-              <div className="border-b-2 border-dashed border-gray-400 my-2"></div>
-              <div className="space-y-1">{viewingTrx.transaction_items?.map((item: any) => (<div key={item.id}><div className="font-bold">{item.product_variants?.variant_name?.substring(0, 30)}</div><div className="flex justify-between"><span>{item.quantity} x {(item.unit_price || item.price || 0)}</span><span>{(item.quantity * (item.unit_price || item.price || 0))}</span></div></div>))}</div>
-              <div className="border-b-2 border-dashed border-gray-400 my-2"></div>
-              <div className="flex justify-between text-base font-bold mb-3"><span>TOTAL</span><span>Rp {(viewingTrx.total_amount || 0).toLocaleString('id-ID')}</span></div>
-            </div>
-            <div className="p-4 bg-slate-50 border-t flex flex-col gap-2 rounded-b-3xl">
-              {viewingTrx.status === 'pending' && authRole && (
-                <>
-                  <div className="flex gap-2 mb-2">
-                    {['Tunai', 'QRIS', 'Transfer'].map(method => (
-                      <button key={method} onClick={() => setPaymentMethod(method)} className={`flex-1 py-2.5 rounded-xl font-bold text-sm border-2 transition-all ${paymentMethod === method ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-gray-500 border-gray-200 hover:border-blue-300'}`}>{method}</button>
-                    ))}
-                  </div>
-                  <button onClick={handleProcessPayment} className="w-full bg-green-500 hover:bg-green-600 text-white font-black py-4 rounded-xl">💰 BAYAR ({paymentMethod})</button>
-                  <button onClick={() => setShowCancelConfirm(true)} className="w-full bg-red-100 text-red-700 font-bold py-2 rounded-xl">Batalkan Pesanan (Miskom)</button>
-                </>
-              )}
-              <div className="flex gap-2">
-                <button onClick={handlePrintPDF} className="flex-1 bg-white border border-gray-300 font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1"><Download size={16} /> Unduh PDF</button>
-                <button onClick={handlePrintBluetooth} className="flex-1 bg-slate-900 text-white font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1"><Smartphone size={16} /> Print Kasir</button>
+        <div className="fixed inset-0 bg-slate-900/60 z-50 overflow-y-auto no-print">
+          <div className="min-h-full flex justify-center p-4">
+            <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl flex flex-col my-auto overflow-hidden">
+              <div className={`p-4 border-b flex justify-between items-center ${viewingTrx.status === 'paid' ? 'bg-green-100' : 'bg-slate-100'}`}><h3 className="font-bold flex items-center gap-2">{viewingTrx.status === 'paid' ? 'LUNAS' : viewingTrx.status === 'cancelled' ? 'BATAL' : 'DETAIL TRANSAKSI'}</h3></div>
+              <div id="printable-receipt" className="p-5 font-mono text-xs sm:text-sm text-black">
+                <div className="text-center font-bold text-lg">Kedai Keluarga</div><div className="border-b-2 border-dashed border-gray-400 my-2"></div>
+                <div className="flex justify-between"><span>Plg:</span><span className="font-bold">{viewingTrx.customer_name || '-'}</span></div>
+                <div className="flex justify-between"><span>Meja:</span><span className="font-bold uppercase">{viewingTrx.table_number || '-'}</span></div>
+                <div className="flex justify-between mb-2"><span>Tgl:</span><span>{new Date(viewingTrx.created_at).toLocaleString('id-ID')}</span></div>
+                <div className="border-b-2 border-dashed border-gray-400 my-2"></div>
+                <div className="space-y-1">{viewingTrx.transaction_items?.map((item: any) => (<div key={item.id}><div className="font-bold">{item.product_variants?.variant_name?.substring(0, 30)}</div><div className="flex justify-between"><span>{item.quantity} x {(item.unit_price || item.price || 0)}</span><span>{(item.quantity * (item.unit_price || item.price || 0))}</span></div></div>))}</div>
+                <div className="border-b-2 border-dashed border-gray-400 my-2"></div>
+                <div className="flex justify-between text-base font-bold mb-3"><span>TOTAL</span><span>Rp {(viewingTrx.total_amount || 0).toLocaleString('id-ID')}</span></div>
               </div>
-              <div className="mt-2 flex gap-2">
-                <button onClick={() => setViewingTrx(null)} className="flex-[3] bg-gray-200 text-gray-800 font-bold py-3 rounded-xl"><X size={18} className="inline" /> Tutup Modal</button>
-                {viewingTrx.status !== 'pending' && <button onClick={() => setShowDeleteConfirm(true)} className="flex-1 flex justify-center items-center bg-red-50 text-red-600 rounded-xl border border-red-200"><Trash2 size={20} /></button>}
+              <div className="p-4 bg-slate-50 border-t flex flex-col gap-2 rounded-b-3xl">
+                {viewingTrx.status === 'pending' && authRole && (
+                  <>
+                    <div className="flex gap-2 mb-2">
+                      {['Tunai', 'QRIS', 'Transfer'].map(method => (
+                        <button key={method} onClick={() => setPaymentMethod(method)} className={`flex-1 py-2.5 rounded-xl font-bold text-sm border-2 transition-all ${paymentMethod === method ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-gray-500 border-gray-200 hover:border-blue-300'}`}>{method}</button>
+                      ))}
+                    </div>
+                    <button onClick={handleProcessPayment} className="w-full bg-green-500 hover:bg-green-600 text-white font-black py-4 rounded-xl">💰 BAYAR ({paymentMethod})</button>
+                    <button onClick={() => setShowCancelConfirm(true)} className="w-full bg-red-100 text-red-700 font-bold py-2 rounded-xl">Batalkan Pesanan (Miskom)</button>
+                  </>
+                )}
+                <div className="flex gap-2">
+                  <button onClick={handlePrintPDF} className="flex-1 bg-white border border-gray-300 font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1"><Download size={16} /> Unduh PDF</button>
+                  <button onClick={handlePrintBluetooth} className="flex-1 bg-slate-900 text-white font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1"><Smartphone size={16} /> Print Kasir</button>
+                </div>
+                <div className="mt-2 flex gap-2">
+                  <button onClick={() => setViewingTrx(null)} className="flex-[3] bg-gray-200 text-gray-800 font-bold py-3 rounded-xl"><X size={18} className="inline" /> Tutup Modal</button>
+                  {viewingTrx.status !== 'pending' && <button onClick={() => setShowDeleteConfirm(true)} className="flex-1 flex justify-center items-center bg-red-50 text-red-600 rounded-xl border border-red-200"><Trash2 size={20} /></button>}
+                </div>
               </div>
             </div>
           </div>
