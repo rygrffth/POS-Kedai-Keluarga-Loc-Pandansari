@@ -32,8 +32,17 @@ export default function CustomerPage() {
   const [cameraActive, setCameraActive] = useState(false);
   const [bestSellers, setBestSellers] = useState<any[]>([]);
 
-  // Konfirmasi scan state
-  const [pendingScannedItem, setPendingScannedItem] = useState<any | null>(null);
+  // Konfirmasi scan state - REMOVED for instant scan
+  // const [pendingScannedItem, setPendingScannedItem] = useState<any | null>(null);
+  
+  // Feedback states
+  const [showToast, setShowToast] = useState(false);
+  const [lastScanned, setLastScanned] = useState<any>(null);
+  const [isPulsing, setIsPulsing] = useState(false);
+
+  const toastTimer = useRef<NodeJS.Timeout | null>(null);
+  const pulseTimer = useRef<NodeJS.Timeout | null>(null);
+
 
   const scannerRef = useRef<any>(null);
 
@@ -64,11 +73,12 @@ export default function CustomerPage() {
   };
 
   useBarcodeScanner((barcode) => {
-    if (!isCheckingOut && !pendingScannedItem) {
+    if (!isCheckingOut) {
       if (cameraActive) handleBatalScan();
       else handleScan(barcode);
     }
   });
+
 
   useEffect(() => {
     setMounted(true);
@@ -84,6 +94,35 @@ export default function CustomerPage() {
     if (data) setBestSellers(data);
   };
 
+  const addItemToCart = (variant: any) => {
+    if (!variant) return;
+
+    setCart((prev) => {
+      const existing = prev.find((item) => item.variant.id === variant.id);
+      if (existing) {
+        return prev.map((item) =>
+          item.variant.id === variant.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [...prev, { variant, quantity: 1 }];
+    });
+
+    // Visual/Audio Feedback
+    playBeepSound();
+    setLastScanned(variant);
+    setShowToast(true);
+    setIsPulsing(true);
+
+    // Reset timers
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setShowToast(false), 3000);
+
+    if (pulseTimer.current) clearTimeout(pulseTimer.current);
+    pulseTimer.current = setTimeout(() => setIsPulsing(false), 1000);
+  };
+
   const handleScan = async (barcode: string) => {
     try {
       const { data, error } = await supabase
@@ -97,31 +136,12 @@ export default function CustomerPage() {
         return;
       }
 
-      playBeepSound();
-      setPendingScannedItem(data);
+      addItemToCart(data);
     } catch (err: any) {
       alert("Error memindai: " + err.message);
     }
   };
 
-  const confirmAddToCart = () => {
-    if (!pendingScannedItem) return;
-
-    setCart((prev) => {
-      const existing = prev.find((item) => item.variant.id === pendingScannedItem.id);
-      if (existing) {
-        return prev.map((item) =>
-          item.variant.id === pendingScannedItem.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      }
-      return [...prev, { variant: pendingScannedItem, quantity: 1 }];
-    });
-
-    setPendingScannedItem(null);
-    setManualCode("");
-  };
 
   const updateQuantity = (variantId: string, delta: number) => {
     setCart((prev) => prev.map(item => {
@@ -221,10 +241,11 @@ export default function CustomerPage() {
           </h1>
           <p className="text-xs text-slate-400 mt-1">Self-Service POS • Scan barcode barang Anda</p>
         </div>
-        <div className="bg-slate-800 p-2.5 rounded-2xl flex items-center gap-2 border border-slate-700">
-          <ShoppingCart size={20} className="text-green-400" />
+        <div className={`bg-slate-800 p-2.5 rounded-2xl flex items-center gap-2 border border-slate-700 transition-all duration-300 ${isPulsing ? 'scale-110 border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.3)]' : ''}`}>
+          <ShoppingCart size={20} className={`text-green-400 ${isPulsing ? 'animate-bounce' : ''}`} />
           <span className="font-bold text-lg">{cart.length}</span>
         </div>
+
       </div>
 
       <div className="p-4 lg:p-8 max-w-lg mx-auto w-full no-print flex-1 space-y-6">
@@ -235,7 +256,8 @@ export default function CustomerPage() {
             <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-3 flex items-center gap-1.5"><Flame size={18} className="text-orange-500" /> Terlaris Minggu Ini</h2>
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
               {bestSellers.map(item => (
-                <div key={item.id} onClick={() => { setPendingScannedItem(item); playBeepSound(); }} className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 hover:shadow-md hover:border-blue-200 transition-all cursor-pointer active:scale-95 group flex flex-col items-center text-center">
+                <div key={item.id} onClick={() => { addItemToCart(item); }} className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 hover:shadow-md hover:border-blue-200 transition-all cursor-pointer active:scale-95 group flex flex-col items-center text-center">
+
                   <div className="w-16 h-16 rounded-full bg-slate-100 mb-2 overflow-hidden border border-slate-200 shadow-inner group-hover:shadow-md transition-shadow">
                     {item.image_url ? <img src={item.image_url} className="w-full h-full object-cover" alt="product" /> : <div className="w-full h-full flex items-center justify-center text-slate-300"><ShoppingCart size={24} /></div>}
                   </div>
@@ -282,7 +304,7 @@ export default function CustomerPage() {
 
           <div className="flex w-full mt-6 gap-2">
             <div className="relative flex-1">
-              <input type="text" placeholder="Contoh: 89912345678" className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 pl-4 pr-10 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400" value={manualCode} onChange={e => setManualCode(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && manualCode) handleScan(manualCode); }} />
+              <input type="text" placeholder="Contoh: 89912345678" className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 pl-4 pr-10 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400" value={manualCode} onChange={e => setManualCode(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && manualCode) handleScan(manualCode); }} />
             </div>
             <button onClick={() => { if (manualCode) handleScan(manualCode); }} className="bg-blue-600 hover:bg-blue-700 text-white p-3.5 rounded-2xl shadow-lg shadow-blue-500/30 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center" disabled={!manualCode}>
               <Search size={20} />
@@ -319,25 +341,23 @@ export default function CustomerPage() {
         )}
       </div>
 
-      {/* CONFIRM ADD TO CART MODAL */}
-      {pendingScannedItem && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex flex-col items-center justify-end p-0 animate-in fade-in duration-200 no-print">
-          <div className="bg-white rounded-t-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl animate-in slide-in-from-bottom-full duration-300">
-            <div className="p-1 flex justify-center"><div className="w-12 h-1.5 bg-gray-200 rounded-full my-3"></div></div>
-            <div className="px-6 pb-6 text-center">
-              <div className="w-24 h-24 mx-auto bg-slate-100 rounded-full mb-4 flex items-center justify-center overflow-hidden border-4 border-slate-50 shadow-inner">
-                {pendingScannedItem.image_url ? <img src={pendingScannedItem.image_url} className="w-full h-full object-cover" /> : <ShoppingCart size={32} className="text-slate-300" />}
-              </div>
-              <h3 className="text-2xl font-black text-slate-800 mb-1">{pendingScannedItem.variant_name || pendingScannedItem.products?.name}</h3>
-              <p className="text-lg text-blue-600 font-bold mb-6">Rp {(pendingScannedItem.price || 0).toLocaleString('id-ID')}</p>
-              <div className="flex gap-3">
-                <button onClick={() => setPendingScannedItem(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-4 rounded-2xl transition-all">Batal</button>
-                <button onClick={confirmAddToCart} className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-500/30 flex justify-center items-center gap-2"><Plus size={20} /> Tambahkan</button>
-              </div>
+      {/* TOAST FEEDBACK */}
+      {showToast && lastScanned && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[60] animate-in fade-in slide-in-from-top-4 duration-300 pointer-events-none">
+          <div className="bg-slate-900/90 backdrop-blur-md text-white px-5 py-3 rounded-2xl shadow-2xl border border-white/10 flex items-center gap-3">
+            <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/20">
+              <CheckCircle2 size={20} />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-green-400 uppercase tracking-wider leading-none mb-1">Berhasil Ditambah</p>
+              <p className="text-sm font-black leading-none">{lastScanned.variant_name || lastScanned.products?.name}</p>
             </div>
           </div>
         </div>
       )}
+
+      {/* CONFIRM ADD TO CART MODAL - REMOVED for instant scan */}
+
 
       {/* CUSTOM CHECKOUT CONFIRMATION MODAL */}
       {showCheckoutConfirm && (
@@ -366,11 +386,11 @@ export default function CustomerPage() {
             <div className="flex gap-2">
               <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 flex-[2] flex items-center gap-3">
                 <User size={18} className="text-gray-400" />
-                <input type="text" placeholder="Nama Anda (Wajib)" className="bg-transparent w-full text-sm font-bold text-gray-800 outline-none placeholder:font-normal placeholder-gray-400" value={customerName} onChange={e => setCustomerName(e.target.value)} />
+                <input type="text" placeholder="Nama Anda (Wajib)" className="bg-transparent w-full text-sm font-bold text-slate-900 outline-none placeholder:font-normal placeholder-gray-400" value={customerName} onChange={e => setCustomerName(e.target.value)} />
               </div>
               <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 flex-1 flex items-center gap-2">
                 <span className="text-gray-400 font-bold text-xs">Meja</span>
-                <input type="text" placeholder="No." className="bg-transparent w-full text-sm font-black text-blue-600 outline-none placeholder:font-normal placeholder-gray-400 uppercase text-center" value={tableNumber} onChange={e => setTableNumber(e.target.value)} maxLength={3} />
+                <input type="text" placeholder="No." className="bg-transparent w-full text-sm font-black text-blue-700 outline-none placeholder:font-normal placeholder-gray-400 uppercase text-center" value={tableNumber} onChange={e => setTableNumber(e.target.value)} maxLength={3} />
               </div>
             </div>
             <div className="flex items-center justify-between gap-4">

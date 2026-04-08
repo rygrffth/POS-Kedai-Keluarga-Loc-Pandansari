@@ -496,11 +496,13 @@ export default function AdminDashboard() {
   };
 
   const findInventory = (barcode: string) => {
-    const item = inventory.find(i => i.barcode === barcode);
+    const cleanBarcode = barcode?.toString().trim();
+    if (!cleanBarcode) return;
+    const item = inventory.find(i => i.barcode?.toString().trim() === cleanBarcode);
     if (item) { setSelectedVariant(item); setIsNewProduct(false); }
     else {
       setSelectedVariant(null); setIsNewProduct(true);
-      setManualBarcode(barcode); setNewProductName(""); setNewProductPrice(""); setNewProductHpp(""); setNewProductStock(""); setNewProductImage("");
+      setManualBarcode(cleanBarcode); setNewProductName(""); setNewProductPrice(""); setNewProductHpp(""); setNewProductStock(""); setNewProductImage("");
     }
   };
 
@@ -786,6 +788,17 @@ export default function AdminDashboard() {
       return true;
     });
   }, [history, histPeriod, histCustomFrom, histCustomTo]);
+
+  // Filtered inventory based on search term
+  const filteredInventory = useMemo(() => {
+    const term = manualBarcode?.toLowerCase().trim() || "";
+    if (!term) return inventory;
+    return inventory.filter(item => {
+      const barcode = item.barcode?.toString().toLowerCase() || "";
+      const name = (item.variant_name || item.products?.name || "").toLowerCase();
+      return barcode.includes(term) || name.includes(term);
+    });
+  }, [inventory, manualBarcode]);
 
   if (!mounted) return null;
 
@@ -1299,7 +1312,7 @@ export default function AdminDashboard() {
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
               {!scanMode ? (
                 <div className="flex gap-2">
-                  <input type="text" placeholder="Cari Barcode / SKU..." className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none" value={manualBarcode} onChange={e => setManualBarcode(e.target.value)} onKeyDown={e => e.key === 'Enter' && findInventory(manualBarcode)} />
+                  <input type="text" placeholder="Cari Barcode / SKU / Nama..." className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-blue-500 outline-none" value={manualBarcode} onChange={e => setManualBarcode(e.target.value)} onKeyDown={e => e.key === 'Enter' && findInventory(manualBarcode)} />
                   <button onClick={() => findInventory(manualBarcode)} className="bg-blue-600 text-white px-5 rounded-xl" title="Cari"><Search size={18} /></button>
                   <button onClick={() => setScanMode(true)} className="bg-slate-800 text-white px-4 rounded-xl flex items-center justify-center gap-2" title="Gunakan Kamera HP/Laptop"><ScanLine size={18} /><span className="hidden sm:inline text-xs font-bold">Kamera</span></button>
                 </div>
@@ -1309,8 +1322,8 @@ export default function AdminDashboard() {
               {isNewProduct && (
                 <div className="mt-5 bg-orange-50 p-5 rounded-xl border border-orange-200 space-y-3">
                   <p className="font-bold text-orange-600 mb-2">Registrasi Produk Baru</p>
-                  <input type="text" placeholder="Nama Produk" className="w-full border p-3 rounded-xl text-sm" value={newProductName} onChange={e => setNewProductName(e.target.value)} />
-                  <div className="flex gap-3"><input type="number" placeholder="Rp Jual" className="flex-1 border p-3 rounded-xl text-sm" value={newProductPrice} onChange={e => setNewProductPrice(Number(e.target.value) || "")} /><input type="number" placeholder="Rp HPP/Modal" className="flex-1 border p-3 rounded-xl text-sm" value={newProductHpp} onChange={e => setNewProductHpp(Number(e.target.value) || "")} /><input type="number" placeholder="Stok Awal" className="flex-1 border p-3 rounded-xl text-sm" value={newProductStock} onChange={e => setNewProductStock(Number(e.target.value) || "")} /></div>
+                  <input type="text" placeholder="Nama Produk" className="w-full border p-3 rounded-xl text-sm text-slate-900 font-bold" value={newProductName} onChange={e => setNewProductName(e.target.value)} />
+                  <div className="flex gap-3"><input type="number" placeholder="Rp Jual" className="flex-1 border p-3 rounded-xl text-sm text-slate-900 font-bold" value={newProductPrice} onChange={e => setNewProductPrice(Number(e.target.value) || "")} /><input type="number" placeholder="Rp HPP/Modal" className="flex-1 border p-3 rounded-xl text-sm text-slate-900 font-bold" value={newProductHpp} onChange={e => setNewProductHpp(Number(e.target.value) || "")} /><input type="number" placeholder="Stok Awal" className="flex-1 border p-3 rounded-xl text-sm text-slate-900 font-bold" value={newProductStock} onChange={e => setNewProductStock(Number(e.target.value) || "")} /></div>
 
                   <div className="bg-white p-3 border rounded-xl">
                     <p className="text-[10px] font-bold text-gray-400 mb-2 uppercase">Gambar Produk (Opsional)</p>
@@ -1332,7 +1345,9 @@ export default function AdminDashboard() {
               )}
             </div>
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-100">
-              {inventory.map(item => {
+              {filteredInventory.length === 0 ? (
+                <div className="p-10 text-center text-gray-400 text-sm">Tidak ada produk yang sesuai pencarian.</div>
+              ) : filteredInventory.map(item => {
                 const dynamicSold = inventorySoldMap[item.id] || 0;
                 return (
                   <div key={item.id} className="p-4 flex justify-between items-center hover:bg-gray-50">
@@ -1388,9 +1403,9 @@ export default function AdminDashboard() {
         <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl p-6 space-y-4">
             <h3 className="font-bold text-slate-800 border-b pb-3 flex justify-between">Ubah Data <X size={20} className="cursor-pointer" onClick={() => setEditingProduct(null)} /></h3>
-            <div><label className="text-xs font-bold text-gray-600 block mb-1">Nama Produk</label><input type="text" className="w-full border p-3 rounded-xl text-sm" value={editProductName} onChange={(e) => setEditProductName(e.target.value)} /></div>
-            <div><label className="text-xs font-bold text-gray-600 block mb-1">Kode Barcode / SKU</label><input type="text" className="w-full border p-3 rounded-xl text-sm" value={editProductBarcode} onChange={(e) => setEditProductBarcode(e.target.value)} /></div>
-            <div className="flex gap-4"><div className="flex-1"><label className="text-xs font-bold text-gray-600 block mb-1">Harga Jual (Rp)</label><input type="number" className="w-full border p-3 rounded-xl text-sm" value={editProductPrice} onChange={(e) => setEditProductPrice(Number(e.target.value) || "")} /></div><div className="flex-1"><label className="text-xs font-bold text-gray-600 block mb-1">HPP / Modal (Rp)</label><input type="number" className="w-full border p-3 rounded-xl text-sm" value={editProductHpp} onChange={(e) => setEditProductHpp(Number(e.target.value) || "")} /></div><div className="flex-1"><label className="text-xs font-bold text-gray-600 block mb-1">Stok</label><input type="number" className="w-full border p-3 rounded-xl text-sm" value={editProductStock} onChange={(e) => setEditProductStock(Number(e.target.value) || "")} /></div></div>
+            <div><label className="text-xs font-bold text-gray-600 block mb-1">Nama Produk</label><input type="text" className="w-full border p-3 rounded-xl text-sm text-slate-900 font-bold" value={editProductName} onChange={(e) => setEditProductName(e.target.value)} /></div>
+            <div><label className="text-xs font-bold text-gray-600 block mb-1">Kode Barcode / SKU</label><input type="text" className="w-full border p-3 rounded-xl text-sm text-slate-900 font-bold" value={editProductBarcode} onChange={(e) => setEditProductBarcode(e.target.value)} /></div>
+            <div className="flex gap-4"><div className="flex-1"><label className="text-xs font-bold text-gray-600 block mb-1">Harga Jual (Rp)</label><input type="number" className="w-full border p-3 rounded-xl text-sm text-slate-900 font-medium" value={editProductPrice} onChange={(e) => setEditProductPrice(Number(e.target.value) || "")} /></div><div className="flex-1"><label className="text-xs font-bold text-gray-600 block mb-1">HPP / Modal (Rp)</label><input type="number" className="w-full border p-3 rounded-xl text-sm text-slate-900 font-medium" value={editProductHpp} onChange={(e) => setEditProductHpp(Number(e.target.value) || "")} /></div><div className="flex-1"><label className="text-xs font-bold text-gray-600 block mb-1">Stok</label><input type="number" className="w-full border p-3 rounded-xl text-sm text-slate-900 font-medium" value={editProductStock} onChange={(e) => setEditProductStock(Number(e.target.value) || "")} /></div></div>
 
             <div className="bg-slate-50 p-3 border rounded-xl">
               <label className="text-[10px] font-bold text-gray-400 block mb-2 uppercase">Ubah Gambar Produk</label>
