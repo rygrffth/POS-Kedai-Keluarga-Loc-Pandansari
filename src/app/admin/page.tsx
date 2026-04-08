@@ -574,19 +574,41 @@ export default function AdminDashboard() {
     try {
       if (!e.target.files || e.target.files.length === 0) return;
       const file = e.target.files[0];
+      
+      // Validasi tipe file
+      if (!file.type.startsWith('image/')) {
+        alert("Hanya file gambar yang diizinkan!");
+        return;
+      }
+
       setIsUploading(true);
+      console.log("Memulai upload ke Supabase Storage (bucket: product-images)...");
 
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `products/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage.from('product-images').upload(filePath, file);
-      if (uploadError) throw uploadError;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error("Upload Error detail:", uploadError);
+        throw uploadError;
+      }
+
+      console.log("Upload berhasil:", uploadData);
 
       const { data } = supabase.storage.from('product-images').getPublicUrl(filePath);
       setter(data.publicUrl);
+      console.log("Public URL didapat:", data.publicUrl);
+
     } catch (err: any) {
-      alert("Gagal upload! Pastikan Anda sudah membuat bucket bernama 'product-images' dan mengesetnya ke Public di Supabase! Error: " + err.message);
+      console.error("Kesalahan lengkap saat upload:", err);
+      alert("Gagal upload! Pastikan Anda sudah membuat bucket bernama 'product-images' dan mengeset RLS Policy ke Public di Supabase! Error: " + err.message);
     } finally {
       setIsUploading(false);
     }
