@@ -7,7 +7,7 @@ import {
   CheckCircle, PackageSearch, ListOrdered, Plus, Search,
   Save, Printer, Smartphone, Download, X, History, ScanLine, RotateCcw,
   Ban, ShoppingBag, BarChart3, CalendarDays, Trash2, Edit, LayoutGrid, Lock,
-  DollarSign, TrendingUp, Receipt, Clock, PlusCircle, AlertCircle, Settings, Info,
+  DollarSign, TrendingUp, Receipt, Clock, PlusCircle, AlertCircle, Settings, Info, Cloud,
   FileSpreadsheet, Sheet, ExternalLink, Loader2, ArrowUpRight, ArrowDownRight,
   ShoppingCart, PieChart as PieChartIcon,
 } from "lucide-react";
@@ -235,7 +235,7 @@ function buildTrendChartData(history: any[], start: Date, end: Date): { name: st
   return points;
 }
 
-type Tab = "transactions" | "tables" | "inventory" | "expenses" | "history" | "analytics" | "settings";
+type Tab = "transactions" | "tables" | "inventory" | "expenses" | "history" | "analytics" | "database" | "settings";
 type Role = "kasir" | "owner";
 
 export default function AdminDashboard() {
@@ -958,6 +958,9 @@ export default function AdminDashboard() {
         <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'history' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('history')}><History size={18} /> Riwayat</button>
         {authRole === 'owner' && <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'analytics' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('analytics')}><BarChart3 size={18} /> Analytics</button>}
         
+        {/* NEW TAB: DATA CLOUD */}
+        {authRole === 'owner' && <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'database' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('database')}><Cloud size={18} /> Data Cloud</button>}
+        
         {/* NEW TAB: SETTINGS */}
         {authRole === 'owner' && <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'settings' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('settings')}><Settings size={18} /> Settings</button>}
         
@@ -968,7 +971,7 @@ export default function AdminDashboard() {
       {syncReminder && authRole === 'owner' && (
         <div className="bg-amber-500 text-white p-3 text-center text-sm font-bold animate-pulse flex items-center justify-center gap-2 no-print">
           <AlertCircle size={18} /> {syncReminder}
-          <button onClick={() => setActiveTab('analytics')} className="bg-white text-amber-600 px-3 py-1 rounded-lg text-[10px] ml-2 hover:bg-amber-50 transition-colors uppercase">Buka Sync</button>
+          <button onClick={() => setActiveTab('database')} className="bg-white text-amber-600 px-3 py-1 rounded-lg text-[10px] ml-2 hover:bg-amber-50 transition-colors uppercase">Buka Sync</button>
         </div>
       )}
 
@@ -1075,40 +1078,6 @@ export default function AdminDashboard() {
         {activeTab === "analytics" && authRole === 'owner' && (
           <div className="space-y-4 animate-in fade-in duration-300">
             
-            {/* Quick Actions (Sync & Export) - Top Most */}
-            <div className="bg-white p-4 rounded-3xl shadow-sm border border-emerald-100 flex flex-wrap gap-4 items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200">
-                  <Sheet size={20} />
-                </div>
-                <div>
-                  <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight">Sinkronisasi Cloud</h4>
-                  <p className="text-[10px] text-emerald-600 font-bold">Update laporan ke Google Sheets</p>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2 flex-1 sm:flex-none justify-end">
-                <button
-                  onClick={async () => {
-                    setIsSyncing(true); setSyncResult(null);
-                    const result = await syncToGoogleSheets({ transactions: history, inventory, soldMap: inventorySoldMap, expenses });
-                    setSyncResult(result); setIsSyncing(false);
-                    if (result.success) alert('✅ ' + result.message); else alert('❌ ' + result.message);
-                  }}
-                  disabled={isSyncing}
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-5 rounded-xl transition-all active:scale-95 text-xs shadow-md disabled:opacity-50"
-                >
-                  {isSyncing ? <Loader2 size={14} className="animate-spin" /> : <Sheet size={14} />}
-                  {isSyncing ? 'Syncing...' : 'Sync Google Sheets Now'}
-                </button>
-                <button
-                  onClick={() => exportFullReportXlsx(history, inventory, inventorySoldMap, expenses)}
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 px-5 rounded-xl transition-all active:scale-95 text-xs shadow-md"
-                >
-                  <FileSpreadsheet size={14} /> Full Report (.xlsx)
-                </button>
-              </div>
-            </div>
-
             {/* Filter periode Analytics */}
             <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
               <p className="text-[10px] font-bold text-gray-400 uppercase mb-2 flex items-center gap-2"><CalendarDays size={14} /> Periode laporan</p>
@@ -1327,47 +1296,12 @@ export default function AdminDashboard() {
               ) : <p className="text-gray-400 text-center py-10 text-sm">Belum ada data transaksi per jam</p>}
               <p className="text-xs text-gray-400 mt-3 text-center">Grafik menampilkan distribusi jumlah transaksi per jam. Jam dengan bar paling tinggi = jam tersibuk Anda.</p>
             </div>
-
-            {/* Removed redundant export section from bottom */}
           </div>
         )}
 
         {/* ================= TAB EXPENSES ================= */}
         {activeTab === "expenses" && authRole === "owner" && (
           <div className="space-y-4 animate-in fade-in duration-300">
-            {/* Quick Actions (Sync & Export) */}
-            <div className="bg-white p-4 rounded-3xl shadow-sm border border-emerald-100 flex flex-wrap gap-4 items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-red-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-red-200">
-                  <Sheet size={20} />
-                </div>
-                <div>
-                  <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight">Sync & Export</h4>
-                  <p className="text-[10px] text-red-600 font-bold">Sinkronkan pengeluaran ke cloud</p>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2 flex-1 sm:flex-none justify-end">
-                <button
-                  onClick={async () => {
-                    setIsSyncing(true); setSyncResult(null);
-                    const result = await syncToGoogleSheets({ transactions: history, inventory, soldMap: inventorySoldMap, expenses });
-                    setSyncResult(result); setIsSyncing(false);
-                    if (result.success) alert('✅ ' + result.message); else alert('❌ ' + result.message);
-                  }}
-                  disabled={isSyncing}
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-5 rounded-xl transition-all active:scale-95 text-xs shadow-md"
-                >
-                  <Sheet size={14} /> Sync Sheets
-                </button>
-                <button
-                  onClick={() => exportFullReportXlsx(history, inventory, inventorySoldMap, expenses)}
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-5 rounded-xl transition-all active:scale-95 text-xs border border-slate-200"
-                >
-                  <Download size={14} /> Export All
-                </button>
-              </div>
-            </div>
-
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-black text-gray-800 uppercase tracking-wider flex items-center gap-2"><Receipt size={20} className="text-red-500" /> Pengeluaran Toko</h3>
@@ -1448,38 +1382,6 @@ export default function AdminDashboard() {
         {/* ================= TAB HISTORY ================= */}
         {activeTab === "history" && (
           <div className="space-y-4 animate-in fade-in duration-300 max-w-3xl">
-            {/* Quick Actions (Sync & Export) */}
-            <div className="bg-white p-4 rounded-3xl shadow-sm border border-emerald-100 flex flex-wrap gap-4 items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-indigo-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200">
-                  <Sheet size={20} />
-                </div>
-                <div>
-                  <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight">Sync & Export</h4>
-                  <p className="text-[10px] text-indigo-600 font-bold">Sinkronkan riwayat transaksi</p>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2 flex-1 sm:flex-none justify-end">
-                <button
-                  onClick={async () => {
-                    setIsSyncing(true); setSyncResult(null);
-                    const result = await syncToGoogleSheets({ transactions: history, inventory, soldMap: inventorySoldMap, expenses });
-                    setSyncResult(result); setIsSyncing(false);
-                    if (result.success) alert('✅ ' + result.message); else alert('❌ ' + result.message);
-                  }}
-                  disabled={isSyncing}
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-5 rounded-xl transition-all active:scale-95 text-xs shadow-md"
-                >
-                  <Sheet size={14} /> Sync Sheets
-                </button>
-                <button
-                  onClick={() => exportTransactionsXlsx(history)}
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-5 rounded-xl transition-all active:scale-95 text-xs shadow-md"
-                >
-                  <Download size={14} /> Export XLSX
-                </button>
-              </div>
-            </div>
 
             {/* Period Filter */}
             <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
@@ -1502,16 +1404,6 @@ export default function AdminDashboard() {
                 <div><p className="text-[10px] text-gray-400 font-bold uppercase">Pendapatan</p><p className="font-black text-green-600">Rp {filteredHistory.filter(t => t.status === 'paid').reduce((s: number, t: any) => s + (t.total_amount || 0), 0).toLocaleString('id-ID')}</p></div>
                 <div><p className="text-[10px] text-gray-400 font-bold uppercase">Batal</p><p className="font-black text-red-500">{filteredHistory.filter(t => t.status === 'cancelled').length}</p></div>
               </div>
-              {authRole === 'owner' && (
-                <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
-                  <button
-                    onClick={() => exportTransactionsXlsx(filteredHistory)}
-                    className="flex items-center gap-1.5 bg-green-50 hover:bg-green-100 text-green-700 font-bold py-2 px-3 rounded-lg border border-green-200 transition-all active:scale-95 text-xs"
-                  >
-                    <Download size={14} /> Export Excel
-                  </button>
-                </div>
-              )}
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-100">
@@ -1531,40 +1423,6 @@ export default function AdminDashboard() {
         {/* ================= TAB INVENTORY (OWNER ONLY) ================= */}
         {activeTab === "inventory" && authRole === 'owner' && (
           <div className="space-y-5 animate-in fade-in duration-300">
-
-            {/* Quick Actions (Sync & Export) - Top Most */}
-            <div className="bg-white p-4 rounded-3xl shadow-sm border border-emerald-100 flex flex-wrap gap-4 items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-orange-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-orange-200">
-                  <Sheet size={20} />
-                </div>
-                <div>
-                  <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight">Sync & Export</h4>
-                  <p className="text-[10px] text-orange-600 font-bold">Sinkronkan stok produk ke Google Sheets</p>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2 flex-1 sm:flex-none justify-end">
-                <button
-                  onClick={async () => {
-                    setIsSyncing(true); setSyncResult(null);
-                    const result = await syncToGoogleSheets({ transactions: history, inventory, soldMap: inventorySoldMap, expenses });
-                    setSyncResult(result); setIsSyncing(false);
-                    if (result.success) alert('✅ ' + result.message); else alert('❌ ' + result.message);
-                  }}
-                  disabled={isSyncing}
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-5 rounded-xl transition-all active:scale-95 text-xs shadow-md disabled:opacity-50"
-                >
-                  {isSyncing ? <Loader2 size={14} className="animate-spin" /> : <Sheet size={14} />}
-                  {isSyncing ? 'Syncing...' : 'Sync Google Sheets Now'}
-                </button>
-                <button
-                  onClick={() => exportInventoryXlsx(inventory, inventorySoldMap)}
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-xl transition-all active:scale-95 text-xs shadow-md"
-                >
-                  <Download size={14} /> Export XLSX
-                </button>
-              </div>
-            </div>
 
             {/* Period Filter */}
             <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
@@ -1659,6 +1517,108 @@ export default function AdminDashboard() {
             {/* Sync buttons moved to top */}
           </div>
         )}
+        {/* ================= TAB DATA CLOUD (OWNER ONLY) ================= */}
+        {activeTab === "database" && authRole === "owner" && (
+          <div className="space-y-6 animate-in fade-in duration-300 max-w-4xl mx-auto">
+            
+            {/* Header Section */}
+            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-14 h-14 bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-200">
+                  <Cloud size={32} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-slate-800">Data Cloud & Backup</h3>
+                  <p className="text-sm text-gray-500 font-medium">Manajemen sinkronisasi Google Sheets dan ekspor laporan</p>
+                </div>
+              </div>
+
+              {/* Main Sync Card */}
+              <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-[2rem] flex flex-col sm:flex-row items-center justify-between gap-6">
+                <div className="flex-1 text-center sm:text-left">
+                  <h4 className="text-lg font-black text-emerald-900 mb-1">Google Sheets Synchronization</h4>
+                  <p className="text-xs text-emerald-700 font-medium leading-relaxed">Pastikan semua transaksi, inventori, dan pengeluaran terbaru terkirim ke cloud untuk pembukuan yang aman.</p>
+                </div>
+                <button
+                  onClick={async () => {
+                    setIsSyncing(true); setSyncResult(null);
+                    const result = await syncToGoogleSheets({ transactions: history, inventory, soldMap: inventorySoldMap, expenses });
+                    setSyncResult(result); setIsSyncing(false);
+                    if (result.success) alert('✅ ' + result.message); else alert('❌ ' + result.message);
+                  }}
+                  disabled={isSyncing}
+                  className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 px-8 rounded-2xl transition-all active:scale-95 shadow-lg shadow-emerald-200 flex items-center justify-center gap-3 disabled:opacity-50"
+                >
+                  {isSyncing ? <Loader2 size={24} className="animate-spin" /> : <Sheet size={24} />}
+                  {isSyncing ? 'Syncing...' : 'Sinkronkan Sekarang'}
+                </button>
+              </div>
+
+              {syncResult && (
+                <div className={`mt-4 p-4 rounded-2xl text-sm font-bold flex items-center justify-between animate-in slide-in-from-top-2 ${syncResult.success ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                  <div className="flex items-center gap-2">
+                    {syncResult.success ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+                    {syncResult.message}
+                  </div>
+                  {syncResult.url && (
+                    <a href={syncResult.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-xl hover:bg-green-700 transition-colors shadow-sm">
+                      <ExternalLink size={14} /> Buka Sheets
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Export Section */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between">
+                <div>
+                  <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-4"><History size={20} /></div>
+                  <h5 className="font-black text-slate-800 mb-1">Export Transaksi</h5>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase mb-4">File Format: .xlsx</p>
+                </div>
+                <button onClick={() => exportTransactionsXlsx(history)} className="w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2"><Download size={16} /> Unduh Data</button>
+              </div>
+
+              <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between">
+                <div>
+                  <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4"><PackageSearch size={20} /></div>
+                  <h5 className="font-black text-slate-800 mb-1">Export Inventori</h5>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase mb-4">File Format: .xlsx</p>
+                </div>
+                <button onClick={() => exportInventoryXlsx(inventory, inventorySoldMap)} className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2"><Download size={16} /> Unduh Data</button>
+              </div>
+
+              <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between">
+                <div>
+                  <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-4"><FileSpreadsheet size={20} /></div>
+                  <h5 className="font-black text-slate-800 mb-1">Laporan Lengkap</h5>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase mb-4">Termasuk Biaya & Laba</p>
+                </div>
+                <button onClick={() => exportFullReportXlsx(history, inventory, inventorySoldMap, expenses)} className="w-full bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2"><Download size={16} /> Unduh Data</button>
+              </div>
+            </div>
+
+            {/* Warning / Token Usage Info */}
+            <div className="bg-slate-900 p-6 rounded-[2rem] text-white">
+              <div className="flex items-start gap-4">
+                <div className="bg-amber-500/20 text-amber-500 p-2 rounded-lg mt-1"><Info size={20} /></div>
+                <div>
+                  <p className="font-black text-lg mb-2 uppercase tracking-tight">💡 Efisiensi Token API</p>
+                  <p className="text-sm text-slate-400 leading-relaxed font-medium">
+                    Sinkronisasi data menggunakan token API Google yang terbatas. Gunakan tombol "Sinkronkan Sekarang" secara bijak, disarankan hanya saat:
+                  </p>
+                  <ul className="text-xs text-slate-500 mt-3 space-y-2 list-disc ml-4 font-bold">
+                    <li>Selesai shift siang hari.</li>
+                    <li>Selesai shift sore hari.</li>
+                    <li>Sebelum menutup toko di malam hari.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ================= TAB SETTINGS ================= */}
         {activeTab === "settings" && authRole === "owner" && (
           <div className="space-y-6 animate-in fade-in duration-300 max-w-2xl mx-auto">
