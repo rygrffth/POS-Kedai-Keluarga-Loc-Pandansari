@@ -945,6 +945,7 @@ export default function AdminDashboard() {
       topProfitProducts,
       velocityRecommendation,
       expenseRatioData,
+      variantSold,
     };
   }, [history, expenses, inventory, analyticsPeriod, analyticsCustomFrom, analyticsCustomTo]);
 
