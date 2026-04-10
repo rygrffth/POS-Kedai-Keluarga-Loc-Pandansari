@@ -323,6 +323,7 @@ export default function AdminDashboard() {
 
   const saveSyncSettings = (mid: number, eve: number, close: number, threshold: number) => {
     localStorage.setItem("pos_sync_settings", JSON.stringify({ midday: mid, evening: eve, closing: close, lowStockThreshold: threshold }));
+    alert("✅ Pengaturan berhasil disimpan!");
   };
 
   useEffect(() => {
@@ -1718,17 +1719,13 @@ export default function AdminDashboard() {
                     type="number" min="0" max="23" 
                     className="w-20 bg-white border border-gray-200 rounded-xl p-3 text-center font-black text-slate-800" 
                     value={remindMidday}
-                    onChange={(e) => {
-                      const v = Number(e.target.value);
-                      setRemindMidday(v);
-                      saveSyncSettings(v, remindEvening, remindClosing, lowStockThreshold);
-                    }}
+                    onChange={(e) => setRemindMidday(Number(e.target.value))}
                   />
                 </div>
 
                 <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">🌆</span>
+                    <span className="text-2xl">🌅</span>
                     <div>
                       <p className="font-bold text-gray-800 text-sm">Peringatan Sore</p>
                       <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Default: Jam 17:00</p>
@@ -1738,11 +1735,7 @@ export default function AdminDashboard() {
                     type="number" min="0" max="23" 
                     className="w-20 bg-white border border-gray-200 rounded-xl p-3 text-center font-black text-slate-800" 
                     value={remindEvening}
-                    onChange={(e) => {
-                      const v = Number(e.target.value);
-                      setRemindEvening(v);
-                      saveSyncSettings(remindMidday, v, remindClosing, lowStockThreshold);
-                    }}
+                    onChange={(e) => setRemindEvening(Number(e.target.value))}
                   />
                 </div>
 
@@ -1758,11 +1751,7 @@ export default function AdminDashboard() {
                     type="number" min="0" max="23" 
                     className="w-20 bg-white border border-gray-200 rounded-xl p-3 text-center font-black text-slate-800" 
                     value={remindClosing}
-                    onChange={(e) => {
-                      const v = Number(e.target.value);
-                      setRemindClosing(v);
-                      saveSyncSettings(remindMidday, remindEvening, v, lowStockThreshold);
-                    }}
+                    onChange={(e) => setRemindClosing(Number(e.target.value))}
                   />
                 </div>
 
@@ -1778,13 +1767,16 @@ export default function AdminDashboard() {
                     type="number" min="1" 
                     className="w-20 bg-white border border-orange-200 rounded-xl p-3 text-center font-black text-orange-900" 
                     value={lowStockThreshold}
-                    onChange={(e) => {
-                      const v = Number(e.target.value);
-                      setLowStockThreshold(v);
-                      saveSyncSettings(remindMidday, remindEvening, remindClosing, v);
-                    }}
+                    onChange={(e) => setLowStockThreshold(Number(e.target.value))}
                   />
                 </div>
+
+                <button 
+                  onClick={() => saveSyncSettings(remindMidday, remindEvening, remindClosing, lowStockThreshold)}
+                  className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-slate-200 flex items-center justify-center gap-2 active:scale-95 mt-4"
+                >
+                  <Save size={20} /> Simpan Pengaturan
+                </button>
               </div>
               
               <div className="mt-8 p-4 bg-amber-50 rounded-2xl border border-amber-100">
