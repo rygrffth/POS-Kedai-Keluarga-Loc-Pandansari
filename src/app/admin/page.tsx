@@ -1235,6 +1235,14 @@ export default function AdminDashboard() {
               <p className="text-[10px] text-gray-400 mt-3">
                 Semua metrik & grafik di bawah mengikuti periode ini. Pembanding % adalah rentang waktu dengan durasi sama sebelum periode terpilih.
               </p>
+
+              <div className="mt-4 pt-4 border-t border-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-2 text-blue-600 bg-blue-50 px-3 py-2 rounded-xl">
+                  <Info size={14} />
+                  <p className="text-[10px] font-bold uppercase tracking-tight">Atur periode ini sebelum melakukan Download Data atau Sync Sheets</p>
+                </div>
+                <button onClick={() => setActiveTab('database')} className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline flex items-center gap-1">Lihat Detail Analisis di Data Cloud / Google Sheets <ExternalLink size={12} /></button>
+              </div>
             </div>
 
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6 border-b border-slate-100">
@@ -1251,7 +1259,9 @@ export default function AdminDashboard() {
                           <span className="text-[9px] text-emerald-600 font-medium">Kec. jual: {item.velocity.toFixed(2)} unit/hari</span>
                         </div>
                         <div className="text-right flex flex-col items-end">
-                          <span className="text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded-lg font-black">Beli {item.needed} unit</span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-lg font-black ${item.needed > 0 ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                            {item.needed > 0 ? `Saran Restok: ${item.needed} unit` : 'Stok Aman'}
+                          </span>
                           <span className="text-[9px] text-slate-400 mt-0.5">Stok: {item.stock}</span>
                         </div>
                       </div>
@@ -1278,10 +1288,6 @@ export default function AdminDashboard() {
                   </div>
                   <p className="text-[9px] text-slate-400 italic">*Dihitung dari (Harga Jual - Modal HPP) dikali unit terjual.</p>
                 </div>
-              </div>
-
-              <div className="mt-6 text-center">
-                <button onClick={() => setActiveTab('database')} className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline">Lihat Detail Analisis di Data Cloud / Google Sheets →</button>
               </div>
 
             {/* [NEW] Efisiensi Operasional Section */}
@@ -1793,8 +1799,11 @@ export default function AdminDashboard() {
               {/* Main Sync Card */}
               <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-[2rem] flex flex-col sm:flex-row items-center justify-between gap-6">
                 <div className="flex-1 text-center sm:text-left">
-                  <h4 className="text-lg font-black text-emerald-900 mb-1">Google Sheets Synchronization</h4>
-                  <p className="text-xs text-emerald-700 font-medium leading-relaxed">Pastikan semua transaksi, inventori, dan pengeluaran terbaru terkirim ke cloud untuk pembukuan yang aman.</p>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className="text-lg font-black text-emerald-900">Google Sheets Synchronization</h4>
+                    <span className="text-[9px] bg-emerald-200 text-emerald-700 px-2 py-0.5 rounded-full font-black uppercase">Analytics Sync</span>
+                  </div>
+                  <p className="text-xs text-emerald-700 font-medium leading-relaxed">Pastikan semua transaksi, inventori, dan pengeluaran terbaru terkirim ke cloud. <span className="underline font-bold">Atur periode di tab Analytics sebelumnya</span> untuk menyesuaikan data laporan strategis.</p>
                 </div>
                 <button
                   onClick={async () => {
