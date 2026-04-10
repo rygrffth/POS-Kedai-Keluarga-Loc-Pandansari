@@ -7,7 +7,7 @@ import {
   CheckCircle, PackageSearch, ListOrdered, Plus, Search,
   Save, Printer, Smartphone, Download, X, History, ScanLine, RotateCcw,
   Ban, ShoppingBag, BarChart3, CalendarDays, Trash2, Edit, LayoutGrid, Lock,
-  DollarSign, TrendingUp, Receipt, Clock, PlusCircle, AlertCircle, Settings,
+  DollarSign, TrendingUp, Receipt, Clock, PlusCircle, AlertCircle, Settings, Info,
   FileSpreadsheet, Sheet, ExternalLink, Loader2, ArrowUpRight, ArrowDownRight,
   ShoppingCart, PieChart as PieChartIcon,
 } from "lucide-react";
@@ -15,6 +15,8 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
 import { exportTransactionsXlsx, exportInventoryXlsx, exportFullReportXlsx } from "@/lib/exportXlsx";
 import { syncToGoogleSheets } from "@/lib/googleSheets";
+ 
+const PIE_COLORS = ["#3b82f6", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6", "#ec4899"];
 
 const Scanner = dynamic(() => import("@/components/Scanner"), { ssr: false });
 
