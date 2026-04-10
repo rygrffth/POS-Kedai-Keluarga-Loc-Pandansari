@@ -160,7 +160,8 @@ function aggregatePeriodMetrics(
 
     let trxHpp = 0;
     trx.transaction_items?.forEach((item: any) => {
-      trxHpp += (item.product_variants?.hpp || 0) * item.quantity;
+      const currentHpp = item.hpp || item.product_variants?.hpp || 0;
+      trxHpp += currentHpp * item.quantity;
       const pname = item.product_variants?.products?.name || "";
       const vname = item.product_variants?.variant_name || "";
       const cat = inferSaleCategory(pname, vname);
@@ -871,7 +872,8 @@ export default function AdminDashboard() {
         if (item.variant_id) {
           const name = item.product_variants?.variant_name || item.product_variants?.products?.name || "Produk";
           const revenue = (item.unit_price || item.price || 0) * item.quantity;
-          const modal = (item.hpp || 0) * item.quantity;
+          const currentHpp = item.hpp || item.product_variants?.hpp || 0;
+          const modal = currentHpp * item.quantity;
           const profit = revenue - modal;
           
           if (!profitMap[item.variant_id]) {
