@@ -1867,7 +1867,25 @@ export default function AdminDashboard() {
                   <h5 className="font-black text-slate-800 mb-1">Laporan Lengkap</h5>
                   <p className="text-[10px] text-gray-400 font-bold uppercase mb-4">Termasuk Biaya & Laba</p>
                 </div>
-                <button onClick={() => exportFullReportXlsx(history, inventory, inventorySoldMap, expenses, analysisLimit)} className="w-full bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2"><Download size={16} /> Unduh Data</button>
+                <button 
+                  onClick={() => exportFullReportXlsx(
+                    history, 
+                    inventory, 
+                    analyticsData.variantSold, 
+                    expenses, 
+                    analysisLimit,
+                    {
+                      omzet: analyticsData.omzet,
+                      hpp: analyticsData.hpp,
+                      expense: analyticsData.expense,
+                      netProfit: analyticsData.netProfit,
+                      range: analyticsData.rangeLabel
+                    }
+                  )} 
+                  className="w-full bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2"
+                >
+                  <Download size={16} /> Unduh Data
+                </button>
               </div>
             </div>
 

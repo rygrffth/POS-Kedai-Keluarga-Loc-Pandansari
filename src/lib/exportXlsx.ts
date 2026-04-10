@@ -122,7 +122,8 @@ export function exportFullReportXlsx(
   inventory: any[],
   soldMap: Record<string, number>,
   expenses: any[],
-  analysisLimit: number = 10
+  analysisLimit: number = 10,
+  summary: { omzet: number; hpp: number; expense: number; netProfit: number; range: string }
 ) {
   const wb = XLSX.utils.book_new();
 
@@ -197,21 +198,21 @@ export function exportFullReportXlsx(
     XLSX.utils.book_append_sheet(wb, ws3, "Pengeluaran");
   }
 
-  const mostPop = [...inventory]
-    .sort((a, b) => (b.sold_count ?? 0) - (a.sold_count ?? 0))
-    .slice(0, analysisLimit)
-    .map(i => ({ "Kategori Analisis": "⭐ Produk Paling Laku", "Nama Produk": i.variant_name || i.products?.name || "-", "Detail": `Terjual ${i.sold_count || 0}` }));
+  const analysisRows = [
+    { "Kategori Analisis": "📊 RINGKASAN PERIODE", "Nama Produk": summary.range, "Detail": "" },
+    { "Kategori Analisis": "💰 Total Omzet", "Nama Produk": "", "Detail": `Rp ${summary.omzet.toLocaleString("id-ID")}` },
+    { "Kategori Analisis": "📦 Total Modal (HPP)", "Nama Produk": "", "Detail": `Rp ${summary.hpp.toLocaleString("id-ID")}` },
+    { "Kategori Analisis": "🧾 Total Operasional", "Nama Produk": "", "Detail": `Rp ${summary.expense.toLocaleString("id-ID")}` },
+    { "Kategori Analisis": "📈 Laba Bersih", "Nama Produk": "", "Detail": `Rp ${summary.netProfit.toLocaleString("id-ID")}` },
+    {},
+  ];
 
-  const procurement = [...inventory]
-    .map(i => {
-      const sold = soldMap[i.id] || 0;
-      const needed = Math.max(0, Math.ceil(sold * 1.2) - (i.stock || 0));
-      return { i, needed, sold };
-    })
-    .filter(x => x.needed > 0)
-    .sort((a, b) => b.needed - a.needed)
+  const mostPop = [...inventory]
+    .map(i => ({ i, sold: soldMap[i.id] || 0 }))
+    .filter(x => x.sold > 0)
+    .sort((a,b) => b.sold - a.sold)
     .slice(0, analysisLimit)
-    .map(x => ({ "Kategori Analisis": "🛒 Rekomendasi Kulakan", "Nama Produk": x.i.variant_name || x.i.products?.name || "-", "Detail": `Beli +${x.needed} unit (Terjual ${x.sold})` }));
+    .map(x => ({ "Kategori Analisis": "⭐ Produk Paling Laku", "Nama Produk": x.i.variant_name || x.i.products?.name || "-", "Detail": `Terjual ${x.sold}` }));
 
   const profitAnalysis = [...inventory]
     .map(i => {
@@ -224,17 +225,25 @@ export function exportFullReportXlsx(
     .slice(0, analysisLimit)
     .map(x => ({ "Kategori Analisis": "💰 Analisis Keuntungan", "Nama Produk": x.i.variant_name || x.i.products?.name || "-", "Detail": `Profit Rp ${x.profit.toLocaleString("id-ID")}` }));
 
+  const procurement = [...inventory]
+    .map(i => {
+      const sold = soldMap[i.id] || 0;
+      const needed = Math.max(0, Math.ceil(sold * 1.2) - (i.stock || 0));
+      return { i, needed, sold };
+    })
+    .filter(x => x.needed > 0)
+    .sort((a, b) => b.needed - a.needed)
+    .slice(0, analysisLimit)
+    .map(x => ({ "Kategori Analisis": "🛒 Saran Restok", "Nama Produk": x.i.variant_name || x.i.products?.name || "-", "Detail": `Butuh +${x.needed} unit` }));
+
   const critStock = inventory
     .filter(i => (i.stock ?? 0) <= 5)
     .sort((a,b) => (a.stock ?? 0) - (b.stock ?? 0))
+    .slice(0, analysisLimit)
     .map(i => ({ "Kategori Analisis": "⚠️ Stok Menipis", "Nama Produk": i.variant_name || i.products?.name || "-", "Detail": `Sisa ${i.stock || 0} pcs` }));
 
-  const analysisRows = [
-    ...mostPop, {}, 
-    ...profitAnalysis, {},
-    ...procurement, {}, 
-    ...critStock
-  ];
+  analysisRows.push(...mostPop, {}, ...profitAnalysis, {}, ...procurement, {}, ...critStock);
+
 
   if (analysisRows.length > 0) {
     const ws4 = XLSX.utils.json_to_sheet(analysisRows);
