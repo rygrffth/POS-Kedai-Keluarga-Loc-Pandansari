@@ -128,12 +128,37 @@ export async function POST(req: NextRequest) {
       exp.amount || 0,
     ]);
 
+    // ANALISIS STRATEGIS (NEW SHEET)
+    const analisisHeader = ["Kategori Analisis", "Nama Produk", "Detail (Stok/Terjual)"];
+    
+    const mostPop = [...(inventory || [])]
+      .sort((a, b) => (b.sold_count ?? 0) - (a.sold_count ?? 0))
+      .slice(0, 10)
+      .map(i => ["⭐ Produk Paling Laku", i.variant_name || i.products?.name || "-", `Terjual ${i.sold_count || 0}`]);
+
+    const leastPop = [...(inventory || [])]
+      .sort((a, b) => (a.sold_count ?? 0) - (b.sold_count ?? 0))
+      .slice(0, 10)
+      .map(i => ["🐌 Produk Kurang Laku", i.variant_name || i.products?.name || "-", `Laku ${i.sold_count || 0}`]);
+
+    const critStock = [...(inventory || [])]
+      .filter(i => (i.stock ?? 0) <= 5)
+      .sort((a,b) => (a.stock ?? 0) - (b.stock ?? 0))
+      .map(i => ["⚠️ Stok Menipis", i.variant_name || i.products?.name || "-", `Sisa ${i.stock || 0} pcs`]);
+
+    const highStock = [...(inventory || [])]
+      .sort((a,b) => (b.stock ?? 0) - (a.stock ?? 0))
+      .slice(0, 10)
+      .map(i => ["📦 Stok Melimpah", i.variant_name || i.products?.name || "-", `Stok ${i.stock || 0}`]);
+
+    const analisisRows = [...mostPop, [], ...critStock, [], ...leastPop, [], ...highStock];
+
     // ── Ensure sheets exist ────────────────────────────────────────────
     const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
     const existingSheets =
       spreadsheet.data.sheets?.map((s) => s.properties?.title) || [];
 
-    const requiredSheets = ["Transaksi", "Inventori", "Pengeluaran"];
+    const requiredSheets = ["Transaksi", "Inventori", "Pengeluaran", "Analisis Strategis"];
     const sheetsToCreate = requiredSheets.filter(
       (name) => !existingSheets.includes(name)
     );
@@ -175,6 +200,7 @@ export async function POST(req: NextRequest) {
     await writeSheet("Transaksi", trxHeader, trxRows);
     await writeSheet("Inventori", invHeader, invRows);
     await writeSheet("Pengeluaran", expHeader, expRows);
+    await writeSheet("Analisis Strategis", analisisHeader, analisisRows);
 
     // ── Format header rows (bold + colored bg) ─────────────────────────
     const sheetMap = await sheets.spreadsheets.get({ spreadsheetId });

@@ -196,6 +196,35 @@ export function exportFullReportXlsx(
     XLSX.utils.book_append_sheet(wb, ws3, "Pengeluaran");
   }
 
+  // Sheet 4: Analisis Strategis
+  const mostPop = [...inventory]
+    .sort((a, b) => (b.sold_count ?? 0) - (a.sold_count ?? 0))
+    .slice(0, 10)
+    .map(i => ({ "Kategori Analisis": "⭐ Produk Paling Laku", "Nama Produk": i.variant_name || i.products?.name || "-", "Detail": `Terjual ${i.sold_count || 0}` }));
+
+  const leastPop = [...inventory]
+    .sort((a, b) => (a.sold_count ?? 0) - (b.sold_count ?? 0))
+    .slice(0, 10)
+    .map(i => ({ "Kategori Analisis": "🐌 Produk Kurang Laku", "Nama Produk": i.variant_name || i.products?.name || "-", "Detail": `Laku ${i.sold_count || 0}` }));
+
+  const critStock = inventory
+    .filter(i => (i.stock ?? 0) <= 5)
+    .sort((a,b) => (a.stock ?? 0) - (b.stock ?? 0))
+    .map(i => ({ "Kategori Analisis": "⚠️ Stok Menipis", "Nama Produk": i.variant_name || i.products?.name || "-", "Detail": `Sisa ${i.stock || 0} pcs` }));
+
+  const highStock = [...inventory]
+    .sort((a,b) => (b.stock ?? 0) - (a.stock ?? 0))
+    .slice(0, 10)
+    .map(i => ({ "Kategori Analisis": "📦 Stok Melimpah", "Nama Produk": i.variant_name || i.products?.name || "-", "Detail": `Stok ${i.stock || 0}` }));
+
+  const analysisRows = [...mostPop, {}, ...critStock, {}, ...leastPop, {}, ...highStock];
+
+  if (analysisRows.length > 0) {
+    const ws4 = XLSX.utils.json_to_sheet(analysisRows);
+    ws4["!cols"] = [{ wch: 25 }, { wch: 35 }, { wch: 20 }];
+    XLSX.utils.book_append_sheet(wb, ws4, "Analisis");
+  }
+
   XLSX.writeFile(
     wb,
     `Laporan_KedaiKeluarga_${new Date().toISOString().slice(0, 10)}.xlsx`

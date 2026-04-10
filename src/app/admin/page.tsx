@@ -806,6 +806,23 @@ export default function AdminDashboard() {
         barcode: i.barcode || "",
       }));
 
+    // Advanced Inventory Insights
+    const mostPopular = [...inventory]
+      .sort((a: any, b: any) => (b.sold_count ?? 0) - (a.sold_count ?? 0))
+      .slice(0, 10);
+    
+    const leastPopular = [...inventory]
+      .sort((a: any, b: any) => (a.sold_count ?? 0) - (b.sold_count ?? 0))
+      .slice(0, 10);
+      
+    const highStock = [...inventory]
+      .sort((a: any, b: any) => (b.stock ?? 0) - (a.stock ?? 0))
+      .slice(0, 10);
+    
+    const criticalStock = [...inventory]
+      .filter((i: any) => (i.stock ?? 0) <= 5)
+      .sort((a: any, b: any) => (a.stock ?? 0) - (b.stock ?? 0));
+
     return {
       rangeLabel,
       trendGranularity,
@@ -832,6 +849,10 @@ export default function AdminDashboard() {
       worstSellerChart,
       categoryChart,
       lowStockItems,
+      mostPopular,
+      leastPopular,
+      highStock,
+      criticalStock,
     };
   }, [history, expenses, inventory, analyticsPeriod, analyticsCustomFrom, analyticsCustomTo]);
 
@@ -1122,6 +1143,73 @@ export default function AdminDashboard() {
               <p className="text-[10px] text-gray-400 mt-3">
                 Semua metrik & grafik di bawah mengikuti periode ini. Pembanding % adalah rentang waktu dengan durasi sama sebelum periode terpilih.
               </p>
+            </div>
+
+            {/* Inventory Health Insights */}
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+              <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight flex items-center gap-2 mb-6">
+                <PackageSearch size={22} className="text-blue-600" /> Kesehatan Inventori & Stok
+              </h3>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Most Popular */}
+                <div className="space-y-3">
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">⭐ Produk Paling Laku (All-Time)</p>
+                  <div className="bg-slate-50 rounded-2xl border border-slate-100 divide-y divide-slate-200 overflow-hidden">
+                    {analyticsData.mostPopular.slice(0,5).map((item: any) => (
+                      <div key={item.id} className="p-3 flex justify-between items-center hover:bg-white transition-colors">
+                        <span className="text-xs font-bold text-slate-700 truncate max-w-[180px]">{item.variant_name || item.products?.name}</span>
+                        <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg font-black">Terjual {item.sold_count || 0}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Critical Stock */}
+                <div className="space-y-3">
+                  <p className="text-[10px] font-black text-red-400 uppercase tracking-widest flex items-center gap-2">⚠️ Stok Menipis (Hampir Habis)</p>
+                  <div className="bg-red-50 rounded-2xl border border-red-100 divide-y divide-red-200 overflow-hidden">
+                    {analyticsData.criticalStock.length === 0 ? (
+                      <p className="p-4 text-xs text-red-800 font-bold text-center italic">Semua stok masih aman!</p>
+                    ) : analyticsData.criticalStock.slice(0,5).map((item: any) => (
+                      <div key={item.id} className="p-3 flex justify-between items-center hover:bg-white transition-colors">
+                        <span className="text-xs font-bold text-red-900 truncate max-w-[180px]">{item.variant_name || item.products?.name}</span>
+                        <span className="text-[10px] bg-red-600 text-white px-2 py-1 rounded-lg font-black">Sisa {item.stock || 0} pcs</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Slow Moving */}
+                <div className="space-y-3">
+                  <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest flex items-center gap-2">🐌 Produk Kurang Laku (Slow Moving)</p>
+                  <div className="bg-orange-50 rounded-2xl border border-orange-100 divide-y divide-orange-200 overflow-hidden">
+                    {analyticsData.leastPopular.slice(0,5).map((item: any) => (
+                      <div key={item.id} className="p-3 flex justify-between items-center hover:bg-white transition-colors">
+                        <span className="text-xs font-bold text-orange-900 truncate max-w-[180px]">{item.variant_name || item.products?.name}</span>
+                        <span className="text-[10px] bg-orange-200 text-orange-800 px-2 py-1 rounded-lg font-black">Laku {item.sold_count || 0}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* High Stock */}
+                <div className="space-y-3">
+                  <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-2">📦 Stok Terbanyak (Modal Mengendap)</p>
+                  <div className="bg-blue-50 rounded-2xl border border-blue-100 divide-y divide-blue-200 overflow-hidden">
+                    {analyticsData.highStock.slice(0,5).map((item: any) => (
+                      <div key={item.id} className="p-3 flex justify-between items-center hover:bg-white transition-colors">
+                        <span className="text-xs font-bold text-blue-900 truncate max-w-[180px]">{item.variant_name || item.products?.name}</span>
+                        <span className="text-[10px] bg-blue-600 text-white px-2 py-1 rounded-lg font-black">Stok {item.stock || 0}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 text-center">
+                <button onClick={() => setActiveTab('database')} className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline">Lihat Detail Analisis di Data Cloud / Google Sheets →</button>
+              </div>
             </div>
 
             {/* Peringatan stok menipis */}
