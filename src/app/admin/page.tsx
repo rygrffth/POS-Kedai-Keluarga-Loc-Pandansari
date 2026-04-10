@@ -326,6 +326,12 @@ export default function AdminDashboard() {
     alert("✅ Pengaturan berhasil disimpan!");
   };
 
+  // Business Notes State
+  const [businessNotes, setBusinessNotes] = useState<any[]>([]);
+  const [noteInput, setNoteInput] = useState("");
+  const [selectedNoteDate, setSelectedNoteDate] = useState(new Date().toISOString().split('T')[0]);
+  const [isSavingNote, setIsSavingNote] = useState(false);
+
   useEffect(() => {
     const checkSyncTime = () => {
       const now = new Date();
@@ -443,6 +449,28 @@ export default function AdminDashboard() {
     fetchInventory();
     fetchHistory();
     fetchExpenses();
+    fetchBusinessNotes();
+  };
+
+  const fetchBusinessNotes = async () => {
+    const { data } = await supabase.from("business_notes").select("*").order("date", { ascending: false });
+    if (data) setBusinessNotes(data);
+  };
+
+  const handleSaveNote = async () => {
+    if (!selectedNoteDate) return;
+    setIsSavingNote(true);
+    try {
+      const { error } = await supabase.from("business_notes").upsert({
+        date: selectedNoteDate,
+        note: noteInput
+      }, { onConflict: 'date' });
+      
+      if (error) throw error;
+      setNoteInput("");
+      fetchBusinessNotes();
+    } catch (err: any) { alert("Gagal simpan catatan: " + err.message); }
+    finally { setIsSavingNote(false); }
   };
 
   const logActivity = async (actionDesc: string) => {
@@ -825,6 +853,58 @@ export default function AdminDashboard() {
       .filter((i: any) => (i.stock ?? 0) <= lowStockThreshold)
       .sort((a: any, b: any) => (a.stock ?? 0) - (b.stock ?? 0));
 
+    // 1. Profitability Analysis
+    const profitMap: Record<string, { name: string; profit: number; revenue: number }> = {};
+    history.forEach((trx) => {
+      if (trx.status !== "paid") return;
+      const tDate = new Date(trx.created_at);
+      if (tDate < start || tDate > end) return;
+      trx.transaction_items?.forEach((item: any) => {
+        if (item.variant_id) {
+          const name = item.product_variants?.variant_name || item.product_variants?.products?.name || "Produk";
+          const revenue = (item.unit_price || item.price || 0) * item.quantity;
+          const modal = (item.hpp || 0) * item.quantity;
+          const profit = revenue - modal;
+          
+          if (!profitMap[item.variant_id]) {
+            profitMap[item.variant_id] = { name, profit: 0, revenue: 0 };
+          }
+          profitMap[item.variant_id].profit += profit;
+          profitMap[item.variant_id].revenue += revenue;
+        }
+      });
+    });
+
+    const topProfitProducts = Object.values(profitMap)
+      .sort((a, b) => b.profit - a.profit)
+      .slice(0, 10);
+
+    // 2. Smart Procurement (Sales Velocity)
+    const velocityRecommendation = [...inventory].map((inv: any) => {
+      const soldInPeriod = variantSold[inv.id] || 0;
+      const velocityPerDay = soldInPeriod / nDays;
+      const recommendedStock = Math.ceil(velocityPerDay * 14); // Buffer for 14 days
+      const needed = Math.max(0, recommendedStock - (inv.stock || 0));
+      
+      return {
+        id: inv.id,
+        name: inv.variant_name || inv.products?.name || "Produk",
+        velocity: velocityPerDay,
+        recommended: recommendedStock,
+        needed: needed,
+        stock: inv.stock || 0
+      };
+    })
+    .filter(item => item.needed > 0 || item.velocity > 0)
+    .sort((a, b) => b.needed - a.needed)
+    .slice(0, 10);
+
+    // 3. Expense Ratio Data
+    const expenseRatioData = [
+      { name: "Omzet", value: curr.omzet, fill: "#3b82f6" },
+      { name: "Biaya Operasional", value: curr.expense, fill: "#ef4444" }
+    ];
+
     return {
       rangeLabel,
       trendGranularity,
@@ -854,6 +934,9 @@ export default function AdminDashboard() {
       leastPopular,
       highStock,
       criticalStock,
+      topProfitProducts,
+      velocityRecommendation,
+      expenseRatioData,
     };
   }, [history, expenses, inventory, analyticsPeriod, analyticsCustomFrom, analyticsCustomTo]);
 
@@ -1146,70 +1229,87 @@ export default function AdminDashboard() {
               </p>
             </div>
 
-            {/* Inventory Health Insights */}
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-              <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight flex items-center gap-2 mb-6">
-                <PackageSearch size={22} className="text-blue-600" /> Kesehatan Inventori & Stok
-              </h3>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Most Popular */}
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6 border-b border-slate-100">
+                {/* [NEW] Smart Procurement */}
                 <div className="space-y-3">
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">⭐ Produk Paling Laku (All-Time)</p>
-                  <div className="bg-slate-50 rounded-2xl border border-slate-100 divide-y divide-slate-200 overflow-hidden">
-                    {analyticsData.mostPopular.slice(0,5).map((item: any) => (
+                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2">🛒 Rekomendasi Kulakan (Smart Procurement)</p>
+                  <div className="bg-emerald-50 rounded-2xl border border-emerald-100 divide-y divide-emerald-200 overflow-hidden">
+                    {analyticsData.velocityRecommendation.length === 0 ? (
+                      <p className="p-4 text-xs text-emerald-800 font-bold text-center italic">Belum ada data penjualan untuk rekomendasi.</p>
+                    ) : analyticsData.velocityRecommendation.slice(0,5).map((item: any) => (
                       <div key={item.id} className="p-3 flex justify-between items-center hover:bg-white transition-colors">
-                        <span className="text-xs font-bold text-slate-700 truncate max-w-[180px]">{item.variant_name || item.products?.name}</span>
-                        <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg font-black">Terjual {item.sold_count || 0}</span>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-emerald-900 truncate max-w-[180px]">{item.name}</span>
+                          <span className="text-[9px] text-emerald-600 font-medium">Kec. jual: {item.velocity.toFixed(2)} unit/hari</span>
+                        </div>
+                        <div className="text-right flex flex-col items-end">
+                          <span className="text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded-lg font-black">Beli {item.needed} unit</span>
+                          <span className="text-[9px] text-slate-400 mt-0.5">Stok: {item.stock}</span>
+                        </div>
                       </div>
                     ))}
                   </div>
+                  <p className="text-[9px] text-slate-400 italic">*Rekomendasi dihitung agar stok cukup untuk 14 hari berdasarkan performa periode ini.</p>
                 </div>
 
-                {/* Critical Stock */}
+                {/* [NEW] Profitability */}
                 <div className="space-y-3">
-                  <p className="text-[10px] font-black text-red-400 uppercase tracking-widest flex items-center gap-2">⚠️ Stok Menipis (Hampir Habis)</p>
-                  <div className="bg-red-50 rounded-2xl border border-red-100 divide-y divide-red-200 overflow-hidden">
-                    {analyticsData.criticalStock.length === 0 ? (
-                      <p className="p-4 text-xs text-red-800 font-bold text-center italic">Semua stok masih aman!</p>
-                    ) : analyticsData.criticalStock.slice(0,5).map((item: any) => (
-                      <div key={item.id} className="p-3 flex justify-between items-center hover:bg-white transition-colors">
-                        <span className="text-xs font-bold text-red-900 truncate max-w-[180px]">{item.variant_name || item.products?.name}</span>
-                        <span className="text-[10px] bg-red-600 text-white px-2 py-1 rounded-lg font-black">Sisa {item.stock || 0} pcs</span>
+                  <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest flex items-center gap-2">💰 Penyumbang Profit Terbesar (Margin)</p>
+                  <div className="bg-indigo-50 rounded-2xl border border-indigo-100 divide-y divide-indigo-200 overflow-hidden">
+                    {analyticsData.topProfitProducts.length === 0 ? (
+                      <p className="p-4 text-xs text-indigo-800 font-bold text-center italic">Belum ada data profit.</p>
+                    ) : analyticsData.topProfitProducts.slice(0,5).map((item: any, idx: number) => (
+                      <div key={idx} className="p-3 flex justify-between items-center hover:bg-white transition-colors">
+                        <span className="text-xs font-bold text-indigo-900 truncate max-w-[180px]">{item.name}</span>
+                        <div className="text-right">
+                          <span className="text-[11px] text-indigo-700 font-black">Rp {item.profit.toLocaleString("id-ID")}</span>
+                          <p className="text-[9px] text-indigo-400 font-medium">Dihasilkan dari Rp {item.revenue.toLocaleString("id-ID")}</p>
+                        </div>
                       </div>
                     ))}
                   </div>
-                </div>
-
-                {/* Slow Moving */}
-                <div className="space-y-3">
-                  <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest flex items-center gap-2">🐌 Produk Kurang Laku (Slow Moving)</p>
-                  <div className="bg-orange-50 rounded-2xl border border-orange-100 divide-y divide-orange-200 overflow-hidden">
-                    {analyticsData.leastPopular.slice(0,5).map((item: any) => (
-                      <div key={item.id} className="p-3 flex justify-between items-center hover:bg-white transition-colors">
-                        <span className="text-xs font-bold text-orange-900 truncate max-w-[180px]">{item.variant_name || item.products?.name}</span>
-                        <span className="text-[10px] bg-orange-200 text-orange-800 px-2 py-1 rounded-lg font-black">Laku {item.sold_count || 0}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* High Stock */}
-                <div className="space-y-3">
-                  <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-2">📦 Stok Terbanyak (Modal Mengendap)</p>
-                  <div className="bg-blue-50 rounded-2xl border border-blue-100 divide-y divide-blue-200 overflow-hidden">
-                    {analyticsData.highStock.slice(0,5).map((item: any) => (
-                      <div key={item.id} className="p-3 flex justify-between items-center hover:bg-white transition-colors">
-                        <span className="text-xs font-bold text-blue-900 truncate max-w-[180px]">{item.variant_name || item.products?.name}</span>
-                        <span className="text-[10px] bg-blue-600 text-white px-2 py-1 rounded-lg font-black">Stok {item.stock || 0}</span>
-                      </div>
-                    ))}
-                  </div>
+                  <p className="text-[9px] text-slate-400 italic">*Dihitung dari (Harga Jual - Modal HPP) dikali unit terjual.</p>
                 </div>
               </div>
 
               <div className="mt-6 text-center">
                 <button onClick={() => setActiveTab('database')} className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline">Lihat Detail Analisis di Data Cloud / Google Sheets →</button>
+              </div>
+            </div>
+
+            {/* [NEW] Efisiensi Operasional Section */}
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+              <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight flex items-center gap-2 mb-4">
+                <BarChart3 size={22} className="text-red-500" /> Efisiensi Operasional
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                <div className="h-64">
+                   <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={analyticsData.expenseRatioData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} tickFormatter={(v) => `Rp ${v / 1000}k`} />
+                      <Tooltip formatter={(v: any) => `Rp ${v.toLocaleString('id-ID')}`} contentStyle={{ borderRadius: '15px', border: 'none' }} />
+                      <Bar dataKey="value" radius={[10, 10, 0, 0]} barSize={50} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="p-8 bg-slate-50 rounded-[2.5rem] space-y-4">
+                  <p className="text-sm font-bold text-slate-500">Analisa Singkat:</p>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-end border-b pb-2">
+                       <span className="text-xs text-slate-400 font-bold uppercase">Rasio Biaya : Omzet</span>
+                       <span className="text-xl font-black text-slate-800">{((analyticsData.expense / (analyticsData.omzet || 1)) * 100).toFixed(1)}%</span>
+                    </div>
+                    <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                      {(analyticsData.expense / (analyticsData.omzet || 1)) > 0.3 ? 
+                        "🔥 Biaya operasional Anda cukup tinggi (>30%). Pertimbangkan efisiensi di pos pengeluaran." : 
+                        "✅ Efisiensi biaya Anda sangat baik. Tetap pertahankan rasio di bawah 30%."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>/button>
               </div>
             </div>
 
@@ -1249,15 +1349,80 @@ export default function AdminDashboard() {
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
               <h3 className="text-sm font-bold text-gray-800 mb-1 uppercase tracking-wider flex items-center gap-2"><TrendingUp size={16} /> Tren penjualan</h3>
               <p className="text-[10px] text-gray-400 mb-4">{analyticsData.rangeLabel} · {analyticsData.trendGranularity}</p>
-              <div className="h-56 w-full"><ResponsiveContainer width="100%" height="100%">
-                <LineChart data={analyticsData.chartElements}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} dy={10} />
-                  <YAxis width={55} axisLine={false} tickLine={false} tickFormatter={(v) => `${v / 1000}k`} tick={{ fontSize: 11, fill: '#6b7280' }} />
-                  <Tooltip formatter={(v: any) => [`Rp ${v.toLocaleString('id-ID')}`, 'Pendapatan']} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgb(0 0 0 / 0.1)' }} />
-                  <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={3} dot={{ r: 5, fill: '#3b82f6', strokeWidth: 2, stroke: 'white' }} activeDot={{ r: 7 }} />
-                </LineChart>
-              </ResponsiveContainer></div>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={analyticsData.chartElements}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} dy={10} />
+                    <YAxis width={55} axisLine={false} tickLine={false} tickFormatter={(v) => `${v / 1000}k`} tick={{ fontSize: 11, fill: '#6b7280' }} />
+                    <Tooltip 
+                      formatter={(v: any, name: string) => name === 'total' ? [`Rp ${v.toLocaleString('id-ID')}`, 'Pendapatan'] : [v, 'Info']} 
+                      content={(props: any) => {
+                        if (!props.active || !props.payload?.[0]) return null;
+                        const data = props.payload[0].payload;
+                        const dateNote = businessNotes.find(bn => bn.date === data.fullDate);
+                        return (
+                          <div className="bg-white p-4 rounded-xl shadow-xl border border-slate-100">
+                            <p className="text-[10px] font-black text-slate-400 uppercase mb-2">{data.name}</p>
+                            <p className="text-sm font-black text-blue-600 mb-1">Rp {data.total.toLocaleString('id-ID')}</p>
+                            {dateNote && (
+                              <div className="mt-2 pt-2 border-t border-slate-50 italic text-[11px] text-orange-600 font-bold max-w-[150px]">
+                                💬 {dateNote.note}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="total" 
+                      stroke="#3b82f6" 
+                      strokeWidth={3} 
+                      dot={(props: any) => {
+                        const dateNote = businessNotes.find(bn => bn.date === props.payload.fullDate);
+                        if (dateNote) {
+                          return <circle cx={props.cx} cy={props.cy} r={6} fill="#f59e0b" stroke="white" strokeWidth={2} />;
+                        }
+                        return <circle cx={props.cx} cy={props.cy} r={4} fill="#3b82f6" stroke="white" strokeWidth={2} />;
+                      }} 
+                      activeDot={{ r: 8 }} 
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Form Tambah Catatan */}
+              <div className="mt-6 pt-6 border-t border-slate-50">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">📅 Tambah Catatan Bisnis (Kalender Event)</p>
+                <div className="flex flex-wrap gap-2">
+                  <input 
+                    type="date" 
+                    className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500" 
+                    value={selectedNoteDate}
+                    onChange={(e) => {
+                      setSelectedNoteDate(e.target.value);
+                      const existing = businessNotes.find(n => n.date === e.target.value);
+                      setNoteInput(existing ? existing.note : "");
+                    }}
+                  />
+                  <input 
+                    type="text" 
+                    placeholder="Contoh: Hujan Badai / Ada Konser Slank / Promo 50%" 
+                    className="flex-1 min-w-[200px] p-3 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 outline-none focus:ring-2 focus:ring-blue-500" 
+                    value={noteInput}
+                    onChange={(e) => setNoteInput(e.target.value)}
+                  />
+                  <button 
+                    onClick={handleSaveNote}
+                    disabled={isSavingNote || !noteInput}
+                    className="bg-slate-900 hover:bg-slate-800 text-white font-black px-6 py-3 rounded-xl text-xs transition-all shadow-lg active:scale-95 flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {isSavingNote ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Simpan Catatan
+                  </button>
+                </div>
+                <p className="text-[9px] text-slate-400 mt-2 italic">*Catatan akan muncul sebagai titik orange di grafik penjualan.</p>
+              </div>
             </div>
 
             {/* === SECTION 3 & 4: PIE + BEST SELLER SIDE BY SIDE === */}

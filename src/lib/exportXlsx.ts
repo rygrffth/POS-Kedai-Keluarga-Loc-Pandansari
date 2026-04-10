@@ -202,26 +202,44 @@ export function exportFullReportXlsx(
     .slice(0, 10)
     .map(i => ({ "Kategori Analisis": "⭐ Produk Paling Laku", "Nama Produk": i.variant_name || i.products?.name || "-", "Detail": `Terjual ${i.sold_count || 0}` }));
 
-  const leastPop = [...inventory]
-    .sort((a, b) => (a.sold_count ?? 0) - (b.sold_count ?? 0))
+  // Smart Procurement (Simple Calculation for Excel based on soldMap)
+  const procurement = [...inventory]
+    .map(i => {
+      const sold = soldMap[i.id] || 0;
+      const needed = Math.max(0, Math.ceil(sold * 1.2) - (i.stock || 0)); // Suggest 20% more than previous period if stock low
+      return { i, needed, sold };
+    })
+    .filter(x => x.needed > 0)
+    .sort((a, b) => b.needed - a.needed)
     .slice(0, 10)
-    .map(i => ({ "Kategori Analisis": "🐌 Produk Kurang Laku", "Nama Produk": i.variant_name || i.products?.name || "-", "Detail": `Laku ${i.sold_count || 0}` }));
+    .map(x => ({ "Kategori Analisis": "🛒 Rekomendasi Kulakan", "Nama Produk": x.i.variant_name || x.i.products?.name || "-", "Detail": `Beli +${x.needed} unit (Terjual ${x.sold})` }));
+
+  const profitAnalysis = [...inventory]
+    .map(i => {
+      const sold = soldMap[i.id] || 0;
+      const profit = ((i.price || 0) - (i.hpp || 0)) * sold;
+      return { i, profit };
+    })
+    .filter(x => x.profit > 0)
+    .sort((a, b) => b.profit - a.profit)
+    .slice(0, 10)
+    .map(x => ({ "Kategori Analisis": "💰 Analisis Keuntungan", "Nama Produk": x.i.variant_name || x.i.products?.name || "-", "Detail": `Profit Rp ${x.profit.toLocaleString("id-ID")}` }));
 
   const critStock = inventory
     .filter(i => (i.stock ?? 0) <= 5)
     .sort((a,b) => (a.stock ?? 0) - (b.stock ?? 0))
     .map(i => ({ "Kategori Analisis": "⚠️ Stok Menipis", "Nama Produk": i.variant_name || i.products?.name || "-", "Detail": `Sisa ${i.stock || 0} pcs` }));
 
-  const highStock = [...inventory]
-    .sort((a,b) => (b.stock ?? 0) - (a.stock ?? 0))
-    .slice(0, 10)
-    .map(i => ({ "Kategori Analisis": "📦 Stok Melimpah", "Nama Produk": i.variant_name || i.products?.name || "-", "Detail": `Stok ${i.stock || 0}` }));
-
-  const analysisRows = [...mostPop, {}, ...critStock, {}, ...leastPop, {}, ...highStock];
+  const analysisRows = [
+    ...mostPop, {}, 
+    ...profitAnalysis, {},
+    ...procurement, {}, 
+    ...critStock
+  ];
 
   if (analysisRows.length > 0) {
     const ws4 = XLSX.utils.json_to_sheet(analysisRows);
-    ws4["!cols"] = [{ wch: 25 }, { wch: 35 }, { wch: 20 }];
+    ws4["!cols"] = [{ wch: 25 }, { wch: 35 }, { wch: 25 }];
     XLSX.utils.book_append_sheet(wb, ws4, "Analisis");
   }
 
