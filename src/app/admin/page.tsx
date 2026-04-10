@@ -253,6 +253,7 @@ export default function AdminDashboard() {
   const [expenseDesc, setExpenseDesc] = useState("");
   const [expenseAmount, setExpenseAmount] = useState<number | "">(0);
   const [expenseCategory, setExpenseCategory] = useState("Kulakan");
+  const [editingExpense, setEditingExpense] = useState<any | null>(null);
 
   const [viewingTrx, setViewingTrx] = useState<any | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -414,11 +415,48 @@ export default function AdminDashboard() {
 
   const handleAddExpense = async () => {
     if (!expenseDesc || !expenseAmount || expenseAmount <= 0) { alert("Isi deskripsi dan jumlah!"); return; }
-    const { error } = await supabase.from("expenses").insert([{ description: expenseDesc, amount: Number(expenseAmount), category: expenseCategory }]);
-    if (error) { alert("Gagal menyimpan. Pastikan tabel 'expenses' sudah dibuat! Error: " + error.message); return; }
-    logActivity(`Catat Pengeluaran: ${expenseCategory} - ${expenseDesc} Rp ${expenseAmount}`);
-    setExpenseDesc(""); setExpenseAmount(0); setShowExpenseForm(false);
+    
+    if (editingExpense) {
+      // UPDATE existing
+      const { error } = await supabase.from("expenses").update({ 
+        description: expenseDesc, 
+        amount: Number(expenseAmount), 
+        category: expenseCategory 
+      }).eq("id", editingExpense.id);
+      
+      if (error) { alert("Gagal mengubah data! Error: " + error.message); return; }
+      logActivity(`Ubah Pengeluaran: ${expenseCategory} - ${expenseDesc} Rp ${expenseAmount}`);
+    } else {
+      // INSERT new
+      const { error } = await supabase.from("expenses").insert([{ 
+        description: expenseDesc, 
+        amount: Number(expenseAmount), 
+        category: expenseCategory 
+      }]);
+      
+      if (error) { alert("Gagal menyimpan. Pastikan tabel 'expenses' sudah dibuat! Error: " + error.message); return; }
+      logActivity(`Catat Pengeluaran: ${expenseCategory} - ${expenseDesc} Rp ${expenseAmount}`);
+    }
+
+    setExpenseDesc(""); setExpenseAmount(0); setShowExpenseForm(false); setEditingExpense(null);
     fetchExpenses();
+  };
+
+  const handleDeleteExpense = async (id: string) => {
+    if (!confirm("Hapus catatan pengeluaran ini?")) return;
+    const { error } = await supabase.from("expenses").delete().eq("id", id);
+    if (error) { alert("Gagal menghapus! " + error.message); return; }
+    logActivity(`Hapus Pengeluaran ID ${id.substring(0, 8)}`);
+    fetchExpenses();
+  };
+
+  const handleOpenEditExpense = (exp: any) => {
+    setEditingExpense(exp);
+    setExpenseDesc(exp.description);
+    setExpenseAmount(exp.amount);
+    setExpenseCategory(exp.category);
+    setShowExpenseForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to form
   };
 
   const fetchInventory = async () => {
@@ -1069,20 +1107,35 @@ export default function AdminDashboard() {
               </div>
               {showExpenseForm && (
                 <div className="space-y-3 bg-red-50 p-4 rounded-xl border border-red-100 mb-4 animate-in slide-in-from-top-2 duration-200">
+                  <div className="flex justify-between items-center mb-1">
+                    <p className="text-[10px] font-bold text-red-600 uppercase tracking-widest">{editingExpense ? 'Mode Edit Biaya' : 'Biaya Baru'}</p>
+                    {editingExpense && <button onClick={() => { setEditingExpense(null); setExpenseDesc(""); setExpenseAmount(0); setShowExpenseForm(false); }} className="text-[10px] bg-white px-2 py-1 rounded border border-red-200 text-red-500 font-bold hover:bg-red-50">Batal Edit</button>}
+                  </div>
                   <select value={expenseCategory} onChange={e => setExpenseCategory(e.target.value)} className="w-full border border-gray-300 rounded-xl p-3 text-sm bg-white font-semibold text-slate-900">
                     <option>Kulakan</option><option>Listrik</option><option>Sewa</option><option>Gaji</option><option>Operasional</option><option>Lainnya</option>
                   </select>
                   <input type="text" placeholder="Deskripsi (cth: Beli bahan kopi 5kg)" className="w-full border border-gray-300 rounded-xl p-3 text-sm text-slate-900" value={expenseDesc} onChange={e => setExpenseDesc(e.target.value)} />
                   <input type="number" placeholder="Jumlah (Rp)" className="w-full border border-gray-300 rounded-xl p-3 text-sm font-bold text-slate-900" value={expenseAmount || ""} onChange={e => setExpenseAmount(Number(e.target.value) || "")} />
-                  <button onClick={handleAddExpense} className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl transition-all active:scale-95">Simpan Pengeluaran</button>
+                  <button onClick={handleAddExpense} className={`w-full ${editingExpense ? 'bg-blue-600 hover:bg-blue-700' : 'bg-red-500 hover:bg-red-600'} text-white font-bold py-3 rounded-xl transition-all active:scale-95`}>
+                    {editingExpense ? 'Simpan Perubahan' : 'Simpan Pengeluaran'}
+                  </button>
                 </div>
               )}
               {expenses.length > 0 && (
-                <div className="divide-y divide-gray-100 max-h-48 overflow-y-auto">
-                  {expenses.slice(0, 10).map((exp: any) => (
-                    <div key={exp.id} className="flex justify-between items-center py-2.5 text-sm">
-                      <div><p className="font-semibold text-gray-800">{exp.description}</p><p className="text-[10px] text-gray-400">{exp.category} • {new Date(exp.created_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p></div>
-                      <p className="font-black text-red-600 text-sm">-Rp {(exp.amount || 0).toLocaleString('id-ID')}</p>
+                <div className="divide-y divide-gray-100 max-h-64 overflow-y-auto pr-1">
+                  {expenses.slice(0, 20).map((exp: any) => (
+                    <div key={exp.id} className="flex justify-between items-center py-3 text-sm group">
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-800">{exp.description}</p>
+                        <p className="text-[10px] text-gray-400">{exp.category} • {new Date(exp.created_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                      </div>
+                      <div className="text-right flex items-center gap-3">
+                        <p className="font-black text-red-600 text-sm">-Rp {(exp.amount || 0).toLocaleString('id-ID')}</p>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => handleOpenEditExpense(exp)} className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100" title="Edit"><Edit size={14} /></button>
+                          <button onClick={() => handleDeleteExpense(exp.id)} className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100" title="Hapus"><Trash2 size={14} /></button>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
