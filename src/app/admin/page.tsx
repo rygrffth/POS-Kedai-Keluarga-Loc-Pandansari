@@ -1073,7 +1073,41 @@ export default function AdminDashboard() {
 
         {/* ================= TAB ANALYTICS (FULL DASHBOARD) ================= */}
         {activeTab === "analytics" && authRole === 'owner' && (
-          <div className="space-y-6 animate-in fade-in duration-300">
+          <div className="space-y-4 animate-in fade-in duration-300">
+            
+            {/* Quick Actions (Sync & Export) - Top Most */}
+            <div className="bg-white p-4 rounded-3xl shadow-sm border border-emerald-100 flex flex-wrap gap-4 items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200">
+                  <Sheet size={20} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight">Sinkronisasi Cloud</h4>
+                  <p className="text-[10px] text-emerald-600 font-bold">Update laporan ke Google Sheets</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 flex-1 sm:flex-none justify-end">
+                <button
+                  onClick={async () => {
+                    setIsSyncing(true); setSyncResult(null);
+                    const result = await syncToGoogleSheets({ transactions: history, inventory, soldMap: inventorySoldMap, expenses });
+                    setSyncResult(result); setIsSyncing(false);
+                    if (result.success) alert('✅ ' + result.message); else alert('❌ ' + result.message);
+                  }}
+                  disabled={isSyncing}
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-5 rounded-xl transition-all active:scale-95 text-xs shadow-md disabled:opacity-50"
+                >
+                  {isSyncing ? <Loader2 size={14} className="animate-spin" /> : <Sheet size={14} />}
+                  {isSyncing ? 'Syncing...' : 'Sync Google Sheets Now'}
+                </button>
+                <button
+                  onClick={() => exportFullReportXlsx(history, inventory, inventorySoldMap, expenses)}
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 px-5 rounded-xl transition-all active:scale-95 text-xs shadow-md"
+                >
+                  <FileSpreadsheet size={14} /> Full Report (.xlsx)
+                </button>
+              </div>
+            </div>
 
             {/* Filter periode Analytics */}
             <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
@@ -1294,59 +1328,46 @@ export default function AdminDashboard() {
               <p className="text-xs text-gray-400 mt-3 text-center">Grafik menampilkan distribusi jumlah transaksi per jam. Jam dengan bar paling tinggi = jam tersibuk Anda.</p>
             </div>
 
-            {/* === SECTION: EXPORT & GOOGLE SHEETS === */}
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-              <h3 className="text-sm font-bold text-gray-800 mb-4 uppercase tracking-wider flex items-center gap-2"><FileSpreadsheet size={16} /> Export & Integrasi</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                <button
-                  onClick={() => exportTransactionsXlsx(history)}
-                  className="flex items-center justify-center gap-2 bg-green-50 hover:bg-green-100 text-green-700 font-bold py-3 px-4 rounded-xl border border-green-200 transition-all active:scale-95 text-sm"
-                >
-                  <Download size={16} /> Transaksi (.xlsx)
-                </button>
-                <button
-                  onClick={() => exportInventoryXlsx(inventory, inventorySoldMap)}
-                  className="flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold py-3 px-4 rounded-xl border border-blue-200 transition-all active:scale-95 text-sm"
-                >
-                  <Download size={16} /> Inventori (.xlsx)
-                </button>
-                <button
-                  onClick={() => exportFullReportXlsx(history, inventory, inventorySoldMap, expenses)}
-                  className="flex items-center justify-center gap-2 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold py-3 px-4 rounded-xl border border-purple-200 transition-all active:scale-95 text-sm"
-                >
-                  <FileSpreadsheet size={16} /> Laporan Lengkap (.xlsx)
-                </button>
-                <button
-                  onClick={async () => {
-                    setIsSyncing(true); setSyncResult(null);
-                    const result = await syncToGoogleSheets({ transactions: history, inventory, soldMap: inventorySoldMap, expenses });
-                    setSyncResult(result); setIsSyncing(false);
-                  }}
-                  disabled={isSyncing}
-                  className="flex items-center justify-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold py-3 px-4 rounded-xl border border-emerald-200 transition-all active:scale-95 text-sm disabled:opacity-50"
-                >
-                  {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <Sheet size={16} />}
-                  {isSyncing ? 'Sync...' : 'Sync Google Sheets'}
-                </button>
-              </div>
-              {syncResult && (
-                <div className={`mt-3 p-3 rounded-xl text-sm font-medium flex items-center justify-between ${syncResult.success ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                  <span>{syncResult.message}</span>
-                  {syncResult.url && (
-                    <a href={syncResult.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 bg-green-600 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-green-700 transition-colors">
-                      <ExternalLink size={12} /> Buka Sheets
-                    </a>
-                  )}
-                </div>
-              )}
-            </div>
-
+            {/* Removed redundant export section from bottom */}
           </div>
         )}
 
         {/* ================= TAB EXPENSES ================= */}
         {activeTab === "expenses" && authRole === "owner" && (
           <div className="space-y-4 animate-in fade-in duration-300">
+            {/* Quick Actions (Sync & Export) */}
+            <div className="bg-white p-4 rounded-3xl shadow-sm border border-emerald-100 flex flex-wrap gap-4 items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-red-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-red-200">
+                  <Sheet size={20} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight">Sync & Export</h4>
+                  <p className="text-[10px] text-red-600 font-bold">Sinkronkan pengeluaran ke cloud</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 flex-1 sm:flex-none justify-end">
+                <button
+                  onClick={async () => {
+                    setIsSyncing(true); setSyncResult(null);
+                    const result = await syncToGoogleSheets({ transactions: history, inventory, soldMap: inventorySoldMap, expenses });
+                    setSyncResult(result); setIsSyncing(false);
+                    if (result.success) alert('✅ ' + result.message); else alert('❌ ' + result.message);
+                  }}
+                  disabled={isSyncing}
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-5 rounded-xl transition-all active:scale-95 text-xs shadow-md"
+                >
+                  <Sheet size={14} /> Sync Sheets
+                </button>
+                <button
+                  onClick={() => exportFullReportXlsx(history, inventory, inventorySoldMap, expenses)}
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-5 rounded-xl transition-all active:scale-95 text-xs border border-slate-200"
+                >
+                  <Download size={14} /> Export All
+                </button>
+              </div>
+            </div>
+
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-black text-gray-800 uppercase tracking-wider flex items-center gap-2"><Receipt size={20} className="text-red-500" /> Pengeluaran Toko</h3>
@@ -1427,6 +1448,38 @@ export default function AdminDashboard() {
         {/* ================= TAB HISTORY ================= */}
         {activeTab === "history" && (
           <div className="space-y-4 animate-in fade-in duration-300 max-w-3xl">
+            {/* Quick Actions (Sync & Export) */}
+            <div className="bg-white p-4 rounded-3xl shadow-sm border border-emerald-100 flex flex-wrap gap-4 items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-indigo-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200">
+                  <Sheet size={20} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight">Sync & Export</h4>
+                  <p className="text-[10px] text-indigo-600 font-bold">Sinkronkan riwayat transaksi</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 flex-1 sm:flex-none justify-end">
+                <button
+                  onClick={async () => {
+                    setIsSyncing(true); setSyncResult(null);
+                    const result = await syncToGoogleSheets({ transactions: history, inventory, soldMap: inventorySoldMap, expenses });
+                    setSyncResult(result); setIsSyncing(false);
+                    if (result.success) alert('✅ ' + result.message); else alert('❌ ' + result.message);
+                  }}
+                  disabled={isSyncing}
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-5 rounded-xl transition-all active:scale-95 text-xs shadow-md"
+                >
+                  <Sheet size={14} /> Sync Sheets
+                </button>
+                <button
+                  onClick={() => exportTransactionsXlsx(history)}
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-5 rounded-xl transition-all active:scale-95 text-xs shadow-md"
+                >
+                  <Download size={14} /> Export XLSX
+                </button>
+              </div>
+            </div>
 
             {/* Period Filter */}
             <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
@@ -1478,6 +1531,40 @@ export default function AdminDashboard() {
         {/* ================= TAB INVENTORY (OWNER ONLY) ================= */}
         {activeTab === "inventory" && authRole === 'owner' && (
           <div className="space-y-5 animate-in fade-in duration-300">
+
+            {/* Quick Actions (Sync & Export) - Top Most */}
+            <div className="bg-white p-4 rounded-3xl shadow-sm border border-emerald-100 flex flex-wrap gap-4 items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-orange-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-orange-200">
+                  <Sheet size={20} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight">Sync & Export</h4>
+                  <p className="text-[10px] text-orange-600 font-bold">Sinkronkan stok produk ke Google Sheets</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 flex-1 sm:flex-none justify-end">
+                <button
+                  onClick={async () => {
+                    setIsSyncing(true); setSyncResult(null);
+                    const result = await syncToGoogleSheets({ transactions: history, inventory, soldMap: inventorySoldMap, expenses });
+                    setSyncResult(result); setIsSyncing(false);
+                    if (result.success) alert('✅ ' + result.message); else alert('❌ ' + result.message);
+                  }}
+                  disabled={isSyncing}
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-5 rounded-xl transition-all active:scale-95 text-xs shadow-md disabled:opacity-50"
+                >
+                  {isSyncing ? <Loader2 size={14} className="animate-spin" /> : <Sheet size={14} />}
+                  {isSyncing ? 'Syncing...' : 'Sync Google Sheets Now'}
+                </button>
+                <button
+                  onClick={() => exportInventoryXlsx(inventory, inventorySoldMap)}
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-xl transition-all active:scale-95 text-xs shadow-md"
+                >
+                  <Download size={14} /> Export XLSX
+                </button>
+              </div>
+            </div>
 
             {/* Period Filter */}
             <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
@@ -1569,29 +1656,7 @@ export default function AdminDashboard() {
               })}
             </div>
 
-            {/* Export Inventory Buttons */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => exportInventoryXlsx(inventory, inventorySoldMap)}
-                className="flex items-center gap-1.5 bg-green-50 hover:bg-green-100 text-green-700 font-bold py-2.5 px-4 rounded-xl border border-green-200 transition-all active:scale-95 text-xs"
-              >
-                <Download size={14} /> Export Inventori (.xlsx)
-              </button>
-              <button
-                onClick={async () => {
-                  setIsSyncing(true); setSyncResult(null);
-                  const result = await syncToGoogleSheets({ transactions: history, inventory, soldMap: inventorySoldMap, expenses });
-                  setSyncResult(result); setIsSyncing(false);
-                  if (result.success) alert('✅ ' + result.message);
-                  else alert('❌ ' + result.message);
-                }}
-                disabled={isSyncing}
-                className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold py-2.5 px-4 rounded-xl border border-emerald-200 transition-all active:scale-95 text-xs disabled:opacity-50"
-              >
-                {isSyncing ? <Loader2 size={14} className="animate-spin" /> : <Sheet size={14} />}
-                {isSyncing ? 'Syncing...' : 'Sync Google Sheets'}
-              </button>
-            </div>
+            {/* Sync buttons moved to top */}
           </div>
         )}
         {/* ================= TAB SETTINGS ================= */}
