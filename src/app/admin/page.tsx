@@ -299,6 +299,32 @@ export default function AdminDashboard() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ success: boolean; message: string; url?: string } | null>(null);
 
+  // Sync Reminders
+  const [syncReminder, setSyncReminder] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkSyncTime = () => {
+      const now = new Date();
+      const hour = now.getHours();
+      const mins = now.getMinutes();
+
+      // Show reminder if it's 12:xx, 17:xx, or 21:xx (Closing)
+      // Only show for the first 15 minutes of the hour to avoid being too annoying
+      if (mins < 15) {
+        if (hour === 12) setSyncReminder("🕒 Jam 12 Siang - Jangan lupa sinkron data ke Google Sheets!");
+        else if (hour === 17) setSyncReminder("🌆 Jam 5 Sore - Pastikan data transaksi sore sudah di-sync!");
+        else if (hour === 21) setSyncReminder("🌙 Hampir Tutup - Sinkronkan semua data hari ini ke Google Sheets!");
+        else setSyncReminder(null);
+      } else {
+        setSyncReminder(null);
+      }
+    };
+
+    checkSyncTime();
+    const interval = setInterval(checkSyncTime, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, []);
+
   // Inventory period filter
   const [invPeriod, setInvPeriod] = useState<'today' | 'week' | 'month' | 'year' | 'custom'>('today');
   const [invCustomFrom, setInvCustomFrom] = useState('');
@@ -899,6 +925,14 @@ export default function AdminDashboard() {
         {authRole === 'owner' && <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'analytics' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('analytics')}><BarChart3 size={18} /> Analytics</button>}
         <button className="px-4 py-4 text-slate-500 hover:text-blue-600 transition-colors ml-auto sm:ml-0" onClick={loadData} title="Sinkronkan Data Manual"><RotateCcw size={18} /></button>
       </div>
+
+      {/* Sync Reminder Banner */}
+      {syncReminder && authRole === 'owner' && (
+        <div className="bg-amber-500 text-white p-3 text-center text-sm font-bold animate-pulse flex items-center justify-center gap-2 no-print">
+          <AlertCircle size={18} /> {syncReminder}
+          <button onClick={() => setActiveTab('analytics')} className="bg-white text-amber-600 px-3 py-1 rounded-lg text-[10px] ml-2 hover:bg-amber-50 transition-colors uppercase">Buka Sync</button>
+        </div>
+      )}
 
       <div className="p-4 max-w-5xl w-full mx-auto flex-1 no-print">
 
