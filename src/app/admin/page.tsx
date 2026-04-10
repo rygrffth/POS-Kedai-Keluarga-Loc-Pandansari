@@ -306,6 +306,7 @@ export default function AdminDashboard() {
   const [remindMidday, setRemindMidday] = useState(12);
   const [remindEvening, setRemindEvening] = useState(17);
   const [remindClosing, setRemindClosing] = useState(22);
+  const [lowStockThreshold, setLowStockThreshold] = useState(5);
 
   useEffect(() => {
     const saved = localStorage.getItem("pos_sync_settings");
@@ -315,13 +316,13 @@ export default function AdminDashboard() {
         if (parsed.midday) setRemindMidday(parsed.midday);
         if (parsed.evening) setRemindEvening(parsed.evening);
         if (parsed.closing) setRemindClosing(parsed.closing);
+        if (parsed.lowStockThreshold) setLowStockThreshold(parsed.lowStockThreshold);
       } catch (e) { console.error("Error loading sync settings", e); }
     }
   }, []);
 
-  const saveSyncSettings = (mid: number, eve: number, clo: number) => {
-    setRemindMidday(mid); setRemindEvening(eve); setRemindClosing(clo);
-    localStorage.setItem("pos_sync_settings", JSON.stringify({ midday: mid, evening: eve, closing: clo }));
+  const saveSyncSettings = (mid: number, eve: number, close: number, threshold: number) => {
+    localStorage.setItem("pos_sync_settings", JSON.stringify({ midday: mid, evening: eve, closing: close, lowStockThreshold: threshold }));
   };
 
   useEffect(() => {
@@ -820,7 +821,7 @@ export default function AdminDashboard() {
       .slice(0, 10);
     
     const criticalStock = [...inventory]
-      .filter((i: any) => (i.stock ?? 0) <= 5)
+      .filter((i: any) => (i.stock ?? 0) <= lowStockThreshold)
       .sort((a: any, b: any) => (a.stock ?? 0) - (b.stock ?? 0));
 
     return {
@@ -848,7 +849,6 @@ export default function AdminDashboard() {
       bestSellerChart,
       worstSellerChart,
       categoryChart,
-      lowStockItems,
       mostPopular,
       leastPopular,
       highStock,
@@ -1212,25 +1212,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Peringatan stok menipis */}
-            {analyticsData.lowStockItems.length > 0 && (
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-                <h3 className="text-sm font-bold text-amber-900 flex items-center gap-2 mb-3">
-                  <AlertCircle size={18} /> Stok menipis — prioritas kulakan
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
-                  {analyticsData.lowStockItems.map((row) => (
-                    <div key={row.id} className="bg-white rounded-xl px-3 py-2 border border-amber-100 shadow-sm">
-                      <p className="text-xs font-bold text-slate-800 truncate" title={row.name}>{row.name}</p>
-                      <p className="text-[10px] text-gray-500 font-mono truncate">{row.barcode || "—"}</p>
-                      <p className={`text-sm font-black mt-1 ${row.stock <= 5 ? "text-red-600" : "text-amber-700"}`}>
-                        Sisa: {row.stock} pcs
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+
 
             {/* Ringkasan + pertumbuhan + AOV */}
             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
@@ -1609,6 +1591,24 @@ export default function AdminDashboard() {
         {activeTab === "database" && authRole === "owner" && (
           <div className="space-y-6 animate-in fade-in duration-300 max-w-4xl mx-auto">
             
+            {/* Warning / Token Usage Info (MOVED TO TOP) */}
+            <div className="bg-slate-900 p-6 rounded-[2rem] text-white">
+              <div className="flex items-start gap-4">
+                <div className="bg-amber-500/20 text-amber-500 p-2 rounded-lg mt-1"><Info size={20} /></div>
+                <div>
+                  <p className="font-black text-lg mb-2 uppercase tracking-tight">💡 Efisiensi Token API</p>
+                  <p className="text-sm text-slate-400 leading-relaxed font-medium">
+                    Sinkronisasi data menggunakan token API Google yang terbatas. Gunakan tombol "Sinkronkan Sekarang" secara bijak, disarankan hanya saat:
+                  </p>
+                  <ul className="text-xs text-slate-500 mt-3 space-y-2 list-disc ml-4 font-bold">
+                    <li>Selesai shift siang hari.</li>
+                    <li>Selesai shift sore hari.</li>
+                    <li>Sebelum menutup toko di malam hari.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
             {/* Header Section */}
             <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
               <div className="flex items-center gap-4 mb-6">
@@ -1687,23 +1687,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Warning / Token Usage Info */}
-            <div className="bg-slate-900 p-6 rounded-[2rem] text-white">
-              <div className="flex items-start gap-4">
-                <div className="bg-amber-500/20 text-amber-500 p-2 rounded-lg mt-1"><Info size={20} /></div>
-                <div>
-                  <p className="font-black text-lg mb-2 uppercase tracking-tight">💡 Efisiensi Token API</p>
-                  <p className="text-sm text-slate-400 leading-relaxed font-medium">
-                    Sinkronisasi data menggunakan token API Google yang terbatas. Gunakan tombol "Sinkronkan Sekarang" secara bijak, disarankan hanya saat:
-                  </p>
-                  <ul className="text-xs text-slate-500 mt-3 space-y-2 list-disc ml-4 font-bold">
-                    <li>Selesai shift siang hari.</li>
-                    <li>Selesai shift sore hari.</li>
-                    <li>Sebelum menutup toko di malam hari.</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
+            {/* REMOVED FROM BOTTOM */}
           </div>
         )}
 
@@ -1734,7 +1718,11 @@ export default function AdminDashboard() {
                     type="number" min="0" max="23" 
                     className="w-20 bg-white border border-gray-200 rounded-xl p-3 text-center font-black text-slate-800" 
                     value={remindMidday}
-                    onChange={(e) => saveSyncSettings(Number(e.target.value), remindEvening, remindClosing)}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setRemindMidday(v);
+                      saveSyncSettings(v, remindEvening, remindClosing, lowStockThreshold);
+                    }}
                   />
                 </div>
 
@@ -1750,7 +1738,11 @@ export default function AdminDashboard() {
                     type="number" min="0" max="23" 
                     className="w-20 bg-white border border-gray-200 rounded-xl p-3 text-center font-black text-slate-800" 
                     value={remindEvening}
-                    onChange={(e) => saveSyncSettings(remindMidday, Number(e.target.value), remindClosing)}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setRemindEvening(v);
+                      saveSyncSettings(remindMidday, v, remindClosing, lowStockThreshold);
+                    }}
                   />
                 </div>
 
@@ -1766,7 +1758,31 @@ export default function AdminDashboard() {
                     type="number" min="0" max="23" 
                     className="w-20 bg-white border border-gray-200 rounded-xl p-3 text-center font-black text-slate-800" 
                     value={remindClosing}
-                    onChange={(e) => saveSyncSettings(remindMidday, remindEvening, Number(e.target.value))}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setRemindClosing(v);
+                      saveSyncSettings(remindMidday, remindEvening, v, lowStockThreshold);
+                    }}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-orange-50 rounded-2xl border border-orange-100">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl"><PackageSearch size={22} className="text-orange-600" /></span>
+                    <div>
+                      <p className="font-bold text-orange-900 text-sm">Ambang Batas Stok Menipis</p>
+                      <p className="text-[10px] text-orange-400 font-bold uppercase tracking-wider">Alert Muncul Jika Stok ≤ X</p>
+                    </div>
+                  </div>
+                  <input 
+                    type="number" min="1" 
+                    className="w-20 bg-white border border-orange-200 rounded-xl p-3 text-center font-black text-orange-900" 
+                    value={lowStockThreshold}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setLowStockThreshold(v);
+                      saveSyncSettings(remindMidday, remindEvening, remindClosing, v);
+                    }}
                   />
                 </div>
               </div>
