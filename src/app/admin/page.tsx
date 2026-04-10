@@ -7,7 +7,7 @@ import {
   CheckCircle, PackageSearch, ListOrdered, Plus, Search,
   Save, Printer, Smartphone, Download, X, History, ScanLine, RotateCcw,
   Ban, ShoppingBag, BarChart3, CalendarDays, Trash2, Edit, LayoutGrid, Lock,
-  DollarSign, TrendingUp, Receipt, Clock, PlusCircle, AlertCircle,
+  DollarSign, TrendingUp, Receipt, Clock, PlusCircle, AlertCircle, Settings,
   FileSpreadsheet, Sheet, ExternalLink, Loader2, ArrowUpRight, ArrowDownRight,
   ShoppingCart, PieChart as PieChartIcon,
 } from "lucide-react";
@@ -233,7 +233,7 @@ function buildTrendChartData(history: any[], start: Date, end: Date): { name: st
   return points;
 }
 
-type Tab = "transactions" | "tables" | "inventory" | "history" | "analytics";
+type Tab = "transactions" | "tables" | "inventory" | "expenses" | "history" | "analytics" | "settings";
 type Role = "kasir" | "owner";
 
 export default function AdminDashboard() {
@@ -299,8 +299,28 @@ export default function AdminDashboard() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ success: boolean; message: string; url?: string } | null>(null);
 
-  // Sync Reminders
+  // Sync Reminders & Settings
   const [syncReminder, setSyncReminder] = useState<string | null>(null);
+  const [remindMidday, setRemindMidday] = useState(12);
+  const [remindEvening, setRemindEvening] = useState(17);
+  const [remindClosing, setRemindClosing] = useState(22);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("pos_sync_settings");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.midday) setRemindMidday(parsed.midday);
+        if (parsed.evening) setRemindEvening(parsed.evening);
+        if (parsed.closing) setRemindClosing(parsed.closing);
+      } catch (e) { console.error("Error loading sync settings", e); }
+    }
+  }, []);
+
+  const saveSyncSettings = (mid: number, eve: number, clo: number) => {
+    setRemindMidday(mid); setRemindEvening(eve); setRemindClosing(clo);
+    localStorage.setItem("pos_sync_settings", JSON.stringify({ midday: mid, evening: eve, closing: clo }));
+  };
 
   useEffect(() => {
     const checkSyncTime = () => {
@@ -308,22 +328,30 @@ export default function AdminDashboard() {
       const hour = now.getHours();
       const mins = now.getMinutes();
 
-      // Show reminder if it's 12:xx, 17:xx, or 21:xx (Closing)
-      // Only show for the first 15 minutes of the hour to avoid being too annoying
-      if (mins < 15) {
-        if (hour === 12) setSyncReminder("🕒 Jam 12 Siang - Jangan lupa sinkron data ke Google Sheets!");
-        else if (hour === 17) setSyncReminder("🌆 Jam 5 Sore - Pastikan data transaksi sore sudah di-sync!");
-        else if (hour === 21) setSyncReminder("🌙 Hampir Tutup - Sinkronkan semua data hari ini ke Google Sheets!");
-        else setSyncReminder(null);
-      } else {
-        setSyncReminder(null);
+      const hoursToRemind = [remindMidday, remindEvening, remindClosing];
+      
+      let currentMsg = null;
+      for (const h of hoursToRemind) {
+        // Small Warning (Persiapan): 10 minutes before the hour
+        if (hour === h - 1 && mins >= 50) {
+          const type = h === remindClosing ? "Tutup Toko" : h === remindMidday ? "Siang" : "Sore";
+          currentMsg = `📢 Persiapan: 10 menit lagi masuk jam sinkronisasi ${type} (${h}:00)`;
+          break;
+        }
+        // Main Warning: first 15 mins of the hour
+        if (hour === h && mins < 15) {
+          const type = h === remindClosing ? "Tutup Toko 🌙" : h === remindMidday ? "Siang 🕒" : "Sore 🌆";
+          currentMsg = `⚠️ Waktunya Sinkronisasi ${type}! Silakan tekan tombol Sync Google Sheets.`;
+          break;
+        }
       }
+      setSyncReminder(currentMsg);
     };
 
     checkSyncTime();
-    const interval = setInterval(checkSyncTime, 60000); // Check every minute
+    const interval = setInterval(checkSyncTime, 30000); // Check every 30s
     return () => clearInterval(interval);
-  }, []);
+  }, [remindMidday, remindEvening, remindClosing]);
 
   // Inventory period filter
   const [invPeriod, setInvPeriod] = useState<'today' | 'week' | 'month' | 'year' | 'custom'>('today');
@@ -921,8 +949,16 @@ export default function AdminDashboard() {
         <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'transactions' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('transactions')}><ListOrdered size={18} /> Antrean  {transactions.length > 0 && <span className="bg-red-500 text-white px-2 py-0.5 rounded-full text-xs">{transactions.length}</span>}</button>
         <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'tables' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('tables')}><LayoutGrid size={18} /> Denah Meja</button>
         {authRole === 'owner' && <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'inventory' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('inventory')}><PackageSearch size={18} /> Inventori</button>}
+        
+        {/* NEW TAB: EXPENSES */}
+        {authRole === 'owner' && <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'expenses' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('expenses')}><Receipt size={18} /> Pengeluaran</button>}
+        
         <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'history' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('history')}><History size={18} /> Riwayat</button>
         {authRole === 'owner' && <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'analytics' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('analytics')}><BarChart3 size={18} /> Analytics</button>}
+        
+        {/* NEW TAB: SETTINGS */}
+        {authRole === 'owner' && <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'settings' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('settings')}><Settings size={18} /> Settings</button>}
+        
         <button className="px-4 py-4 text-slate-500 hover:text-blue-600 transition-colors ml-auto sm:ml-0" onClick={loadData} title="Sinkronkan Data Manual"><RotateCcw size={18} /></button>
       </div>
 
@@ -1133,50 +1169,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* === SECTION: EXPENSE INPUT FORM === */}
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2"><Receipt size={16} /> Catat Pengeluaran</h3>
-                <button onClick={() => setShowExpenseForm(!showExpenseForm)} className="text-xs bg-red-50 text-red-600 font-bold px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-100 flex items-center gap-1"><PlusCircle size={14} /> {showExpenseForm ? 'Tutup' : 'Tambah Biaya'}</button>
-              </div>
-              {showExpenseForm && (
-                <div className="space-y-3 bg-red-50 p-4 rounded-xl border border-red-100 mb-4 animate-in slide-in-from-top-2 duration-200">
-                  <div className="flex justify-between items-center mb-1">
-                    <p className="text-[10px] font-bold text-red-600 uppercase tracking-widest">{editingExpense ? 'Mode Edit Biaya' : 'Biaya Baru'}</p>
-                    {editingExpense && <button onClick={() => { setEditingExpense(null); setExpenseDesc(""); setExpenseAmount(0); setShowExpenseForm(false); }} className="text-[10px] bg-white px-2 py-1 rounded border border-red-200 text-red-500 font-bold hover:bg-red-50">Batal Edit</button>}
-                  </div>
-                  <select value={expenseCategory} onChange={e => setExpenseCategory(e.target.value)} className="w-full border border-gray-300 rounded-xl p-3 text-sm bg-white font-semibold text-slate-900">
-                    <option>Kulakan</option><option>Listrik</option><option>Sewa</option><option>Gaji</option><option>Operasional</option><option>Lainnya</option>
-                  </select>
-                  <input type="text" placeholder="Deskripsi (cth: Beli bahan kopi 5kg)" className="w-full border border-gray-300 rounded-xl p-3 text-sm text-slate-900" value={expenseDesc} onChange={e => setExpenseDesc(e.target.value)} />
-                  <input type="number" placeholder="Jumlah (Rp)" className="w-full border border-gray-300 rounded-xl p-3 text-sm font-bold text-slate-900" value={expenseAmount || ""} onChange={e => setExpenseAmount(Number(e.target.value) || "")} />
-                  <button onClick={handleAddExpense} className={`w-full ${editingExpense ? 'bg-blue-600 hover:bg-blue-700' : 'bg-red-500 hover:bg-red-600'} text-white font-bold py-3 rounded-xl transition-all active:scale-95`}>
-                    {editingExpense ? 'Simpan Perubahan' : 'Simpan Pengeluaran'}
-                  </button>
-                </div>
-              )}
-              {expenses.length > 0 && (
-                <div className="divide-y divide-gray-100 max-h-64 overflow-y-auto pr-1">
-                  {expenses.slice(0, 20).map((exp: any) => (
-                    <div key={exp.id} className="flex justify-between items-center py-3 text-sm group">
-                      <div className="flex-1">
-                        <p className="font-semibold text-gray-800">{exp.description}</p>
-                        <p className="text-[10px] text-gray-400">{exp.category} • {new Date(exp.created_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
-                      </div>
-                      <div className="text-right flex items-center gap-3">
-                        <p className="font-black text-red-600 text-sm">-Rp {(exp.amount || 0).toLocaleString('id-ID')}</p>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => handleOpenEditExpense(exp)} className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100" title="Edit"><Edit size={14} /></button>
-                          <button onClick={() => handleDeleteExpense(exp.id)} className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100" title="Hapus"><Trash2 size={14} /></button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* === SECTION 2: GRAFIK TREN PENJUALAN (LINE CHART) === */}
+            {/* GRAFIK TREN PENJUALAN (LINE CHART) */}
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
               <h3 className="text-sm font-bold text-gray-800 mb-1 uppercase tracking-wider flex items-center gap-2"><TrendingUp size={16} /> Tren penjualan</h3>
               <p className="text-[10px] text-gray-400 mb-4">{analyticsData.rangeLabel} · {analyticsData.trendGranularity}</p>
@@ -1349,6 +1342,86 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* ================= TAB EXPENSES ================= */}
+        {activeTab === "expenses" && authRole === "owner" && (
+          <div className="space-y-4 animate-in fade-in duration-300">
+            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-black text-gray-800 uppercase tracking-wider flex items-center gap-2"><Receipt size={20} className="text-red-500" /> Pengeluaran Toko</h3>
+                <button onClick={() => setShowExpenseForm(!showExpenseForm)} className="text-xs bg-red-50 text-red-600 font-bold px-4 py-2 rounded-xl border border-red-200 hover:bg-red-100 flex items-center gap-1.5 transition-all"><PlusCircle size={16} /> {showExpenseForm ? 'Tutup Form' : 'Catat Biaya Baru'}</button>
+              </div>
+              
+              {showExpenseForm && (
+                <div className="space-y-4 bg-red-50/50 p-6 rounded-[2rem] border border-red-100 mb-6 animate-in slide-in-from-top-4 duration-300">
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs font-black text-red-600 uppercase tracking-[0.2em]">{editingExpense ? '⚡ Mode Edit Biaya' : '📝 Input Biaya Baru'}</p>
+                    {editingExpense && <button onClick={() => { setEditingExpense(null); setExpenseDesc(""); setExpenseAmount(0); setShowExpenseForm(false); }} className="text-xs bg-white px-3 py-1.5 rounded-xl border border-red-200 text-red-500 font-bold hover:bg-red-50 shadow-sm">Batal Edit</button>}
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase ml-2">Kategori</label>
+                      <select value={expenseCategory} onChange={e => setExpenseCategory(e.target.value)} className="w-full border border-gray-200 rounded-2xl p-3.5 text-sm bg-white font-bold text-slate-900 outline-none focus:ring-2 focus:ring-red-500 transition-all">
+                        <option>Kulakan</option><option>Listrik</option><option>Sewa</option><option>Gaji</option><option>Operasional</option><option>Lainnya</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase ml-2">Deskripsi</label>
+                      <input type="text" placeholder="Contoh: Beli Kopi 5kg" className="w-full border border-gray-200 rounded-2xl p-3.5 text-sm text-slate-900 font-medium outline-none focus:ring-2 focus:ring-red-500 transition-all" value={expenseDesc} onChange={e => setExpenseDesc(e.target.value)} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase ml-2">Jumlah (Rp)</label>
+                      <input type="number" placeholder="Rp 0" className="w-full border border-gray-200 rounded-2xl p-3.5 text-sm font-black text-slate-900 outline-none focus:ring-2 focus:ring-red-500 transition-all" value={expenseAmount || ""} onChange={e => setExpenseAmount(Number(e.target.value) || "")} />
+                    </div>
+                  </div>
+                  
+                  <button onClick={handleAddExpense} className={`w-full ${editingExpense ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30' : 'bg-red-500 hover:bg-red-600 shadow-red-500/30'} text-white font-black py-4 rounded-2xl transition-all active:scale-95 shadow-lg text-sm uppercase tracking-widest`}>
+                    {editingExpense ? 'Simpan Perubahan' : 'Posting Pengeluaran'}
+                  </button>
+                </div>
+              )}
+
+              {expenses.length === 0 ? (
+                <div className="text-center py-20 bg-gray-50 rounded-[2rem] border border-dashed border-gray-200">
+                  <Receipt size={40} className="mx-auto text-gray-300 mb-2" />
+                  <p className="text-gray-400 font-medium text-sm">Belum ada catatan pengeluaran.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {expenses.map((exp: any) => (
+                    <div key={exp.id} className="flex justify-between items-center py-4 text-sm group hover:bg-slate-50 rounded-xl px-3 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-500 shrink-0">
+                          <Receipt size={18} />
+                        </div>
+                        <div>
+                          <p className="font-black text-gray-800 text-base">{exp.description}</p>
+                          <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">{exp.category} • {new Date(exp.created_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                        </div>
+                      </div>
+                      <div className="text-right flex items-center gap-6">
+                        <p className="font-black text-red-600 text-lg">-Rp {(exp.amount || 0).toLocaleString('id-ID')}</p>
+                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100">
+                          <button onClick={() => handleOpenEditExpense(exp)} className="p-2.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm" title="Edit"><Edit size={16} /></button>
+                          <button onClick={() => handleDeleteExpense(exp.id)} className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm" title="Hapus"><Trash2 size={16} /></button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex items-start gap-3">
+              <Info size={20} className="text-blue-500 mt-0.5" />
+              <div className="text-xs text-blue-800 leading-relaxed font-medium">
+                <p className="font-black uppercase mb-1">💡 Tips Pengelolaan Data</p>
+                Semua pengeluaran yang Anda catat akan otomatis diperhitungkan sebagai **HPP/Operasional** pada dashboard Analytics untuk menghitung Laba Bersih yang akurat. Pastikan untuk melakukan **Sync Google Sheets** di tab Analytics agar laporan di cloud tetap up-to-date.
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ================= TAB HISTORY ================= */}
         {activeTab === "history" && (
           <div className="space-y-4 animate-in fade-in duration-300 max-w-3xl">
@@ -1516,6 +1589,87 @@ export default function AdminDashboard() {
                 {isSyncing ? <Loader2 size={14} className="animate-spin" /> : <Sheet size={14} />}
                 {isSyncing ? 'Syncing...' : 'Sync Google Sheets'}
               </button>
+            </div>
+          </div>
+        )}
+        {/* ================= TAB SETTINGS ================= */}
+        {activeTab === "settings" && authRole === "owner" && (
+          <div className="space-y-6 animate-in fade-in duration-300 max-w-2xl mx-auto">
+            <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-gray-100">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center">
+                  <Clock size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-gray-800">Pengaturan Pengingat Sync</h3>
+                  <p className="text-xs text-gray-400 font-medium">Atur jam munculnya peringatan Google Sheets</p>
+                </div>
+              </div>
+
+              <div className="space-y-5">
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🕒</span>
+                    <div>
+                      <p className="font-bold text-gray-800 text-sm">Peringatan Siang</p>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Default: Jam 12:00</p>
+                    </div>
+                  </div>
+                  <input 
+                    type="number" min="0" max="23" 
+                    className="w-20 bg-white border border-gray-200 rounded-xl p-3 text-center font-black text-slate-800" 
+                    value={remindMidday}
+                    onChange={(e) => saveSyncSettings(Number(e.target.value), remindEvening, remindClosing)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🌆</span>
+                    <div>
+                      <p className="font-bold text-gray-800 text-sm">Peringatan Sore</p>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Default: Jam 17:00</p>
+                    </div>
+                  </div>
+                  <input 
+                    type="number" min="0" max="23" 
+                    className="w-20 bg-white border border-gray-200 rounded-xl p-3 text-center font-black text-slate-800" 
+                    value={remindEvening}
+                    onChange={(e) => saveSyncSettings(remindMidday, Number(e.target.value), remindClosing)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🌙</span>
+                    <div>
+                      <p className="font-bold text-gray-800 text-sm">Peringatan Tutup Toko</p>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Default: Jam 22:00</p>
+                    </div>
+                  </div>
+                  <input 
+                    type="number" min="0" max="23" 
+                    className="w-20 bg-white border border-gray-200 rounded-xl p-3 text-center font-black text-slate-800" 
+                    value={remindClosing}
+                    onChange={(e) => saveSyncSettings(remindMidday, remindEvening, Number(e.target.value))}
+                  />
+                </div>
+              </div>
+              
+              <div className="mt-8 p-4 bg-amber-50 rounded-2xl border border-amber-100">
+                <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-2 flex items-center gap-2">
+                  <Info size={14} /> Cara Kerja Pengingat
+                </p>
+                <ul className="text-[11px] text-amber-800 space-y-2 font-medium leading-relaxed">
+                  <li className="flex gap-2"><span>•</span> <span><b>Peringatan Kecil (Persiapan):</b> Muncul otomatis 10 menit sebelum jam yang ditentukan (misal 21:50) untuk mengingatkan Anda bersiap melakukan sinkronisasi.</span></li>
+                  <li className="flex gap-2"><span>•</span> <span><b>Peringatan Utama:</b> Muncul tepat pada jam yang ditentukan (misal 22:00) dengan efek animasi berkedip agar lebih perhatian.</span></li>
+                  <li className="flex gap-2"><span>•</span> <span><b>Penyimpanan:</b> Aturan ini disimpan di browser Anda dan hanya berlaku pada perangkat ini.</span></li>
+                </ul>
+              </div>
+            </div>
+            
+            <div className="text-center opacity-40 hover:opacity-100 transition-opacity">
+              <p className="text-[10px] font-bold text-gray-400">Settings Version 1.2 • KEDAI KELUARGA POS</p>
             </div>
           </div>
         )}
