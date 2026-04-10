@@ -8,6 +8,7 @@ export interface SyncPayload {
   inventory: any[];
   soldMap: Record<string, number>;
   expenses: any[];
+  analysisLimit?: number;
 }
 
 export async function syncToGoogleSheets(payload: SyncPayload): Promise<{ success: boolean; message: string; url?: string }> {

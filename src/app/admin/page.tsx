@@ -307,6 +307,7 @@ export default function AdminDashboard() {
   const [remindEvening, setRemindEvening] = useState(17);
   const [remindClosing, setRemindClosing] = useState(22);
   const [lowStockThreshold, setLowStockThreshold] = useState(5);
+  const [analysisLimit, setAnalysisLimit] = useState(10);
 
   useEffect(() => {
     const saved = localStorage.getItem("pos_sync_settings");
@@ -317,12 +318,19 @@ export default function AdminDashboard() {
         if (parsed.evening) setRemindEvening(parsed.evening);
         if (parsed.closing) setRemindClosing(parsed.closing);
         if (parsed.lowStockThreshold) setLowStockThreshold(parsed.lowStockThreshold);
+        if (parsed.analysisLimit) setAnalysisLimit(parsed.analysisLimit);
       } catch (e) { console.error("Error loading sync settings", e); }
     }
   }, []);
 
-  const saveSyncSettings = (mid: number, eve: number, close: number, threshold: number) => {
-    localStorage.setItem("pos_sync_settings", JSON.stringify({ midday: mid, evening: eve, closing: close, lowStockThreshold: threshold }));
+  const saveSyncSettings = (mid: number, eve: number, close: number, threshold: number, limit: number) => {
+    localStorage.setItem("pos_sync_settings", JSON.stringify({ 
+      midday: mid, 
+      evening: eve, 
+      closing: close, 
+      lowStockThreshold: threshold,
+      analysisLimit: limit
+    }));
     alert("✅ Pengaturan berhasil disimpan!");
   };
 
@@ -877,7 +885,7 @@ export default function AdminDashboard() {
 
     const topProfitProducts = Object.values(profitMap)
       .sort((a, b) => b.profit - a.profit)
-      .slice(0, 10);
+      .slice(0, analysisLimit);
 
     // 2. Smart Procurement (Sales Velocity)
     const velocityRecommendation = [...inventory].map((inv: any) => {
@@ -897,7 +905,7 @@ export default function AdminDashboard() {
     })
     .filter(item => item.needed > 0 || item.velocity > 0)
     .sort((a, b) => b.needed - a.needed)
-    .slice(0, 10);
+    .slice(0, analysisLimit);
 
     // 3. Expense Ratio Data
     const expenseRatioData = [
@@ -1236,7 +1244,7 @@ export default function AdminDashboard() {
                   <div className="bg-emerald-50 rounded-2xl border border-emerald-100 divide-y divide-emerald-200 overflow-hidden">
                     {analyticsData.velocityRecommendation.length === 0 ? (
                       <p className="p-4 text-xs text-emerald-800 font-bold text-center italic">Belum ada data penjualan untuk rekomendasi.</p>
-                    ) : analyticsData.velocityRecommendation.slice(0,5).map((item: any) => (
+                    ) : analyticsData.velocityRecommendation.map((item: any) => (
                       <div key={item.id} className="p-3 flex justify-between items-center hover:bg-white transition-colors">
                         <div className="flex flex-col">
                           <span className="text-xs font-bold text-emerald-900 truncate max-w-[180px]">{item.name}</span>
@@ -1249,7 +1257,7 @@ export default function AdminDashboard() {
                       </div>
                     ))}
                   </div>
-                  <p className="text-[9px] text-slate-400 italic">*Rekomendasi dihitung agar stok cukup untuk 14 hari berdasarkan performa periode ini.</p>
+                  <p className="text-[9px] text-slate-400 italic">*Rekomendasi dihitung agar stok cukup for 14 hari berdasarkan performa periode ini.</p>
                 </div>
 
                 {/* [NEW] Profitability */}
@@ -1258,7 +1266,7 @@ export default function AdminDashboard() {
                   <div className="bg-indigo-50 rounded-2xl border border-indigo-100 divide-y divide-indigo-200 overflow-hidden">
                     {analyticsData.topProfitProducts.length === 0 ? (
                       <p className="p-4 text-xs text-indigo-800 font-bold text-center italic">Belum ada data profit.</p>
-                    ) : analyticsData.topProfitProducts.slice(0,5).map((item: any, idx: number) => (
+                    ) : analyticsData.topProfitProducts.map((item: any, idx: number) => (
                       <div key={idx} className="p-3 flex justify-between items-center hover:bg-white transition-colors">
                         <span className="text-xs font-bold text-indigo-900 truncate max-w-[180px]">{item.name}</span>
                         <div className="text-right">
@@ -1796,7 +1804,13 @@ export default function AdminDashboard() {
                 <button
                   onClick={async () => {
                     setIsSyncing(true); setSyncResult(null);
-                    const result = await syncToGoogleSheets({ transactions: history, inventory, soldMap: inventorySoldMap, expenses });
+                    const result = await syncToGoogleSheets({ 
+                      transactions: history, 
+                      inventory, 
+                      soldMap: inventorySoldMap, 
+                      expenses,
+                      analysisLimit 
+                    });
                     setSyncResult(result); setIsSyncing(false);
                     if (result.success) alert('✅ ' + result.message); else alert('❌ ' + result.message);
                   }}
@@ -1849,7 +1863,7 @@ export default function AdminDashboard() {
                   <h5 className="font-black text-slate-800 mb-1">Laporan Lengkap</h5>
                   <p className="text-[10px] text-gray-400 font-bold uppercase mb-4">Termasuk Biaya & Laba</p>
                 </div>
-                <button onClick={() => exportFullReportXlsx(history, inventory, inventorySoldMap, expenses)} className="w-full bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2"><Download size={16} /> Unduh Data</button>
+                <button onClick={() => exportFullReportXlsx(history, inventory, inventorySoldMap, expenses, analysisLimit)} className="w-full bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2"><Download size={16} /> Unduh Data</button>
               </div>
             </div>
 
@@ -1920,6 +1934,22 @@ export default function AdminDashboard() {
                   />
                 </div>
 
+                <div className="flex items-center justify-between p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl"><BarChart3 size={22} className="text-indigo-600" /></span>
+                    <div>
+                      <p className="font-bold text-indigo-900 text-sm">Jumlah Item di Analisis</p>
+                      <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider">Top X Produk di Dashboard & Sheets</p>
+                    </div>
+                  </div>
+                  <input 
+                    type="number" min="1" max="50"
+                    className="w-20 bg-white border border-indigo-200 rounded-xl p-3 text-center font-black text-indigo-900" 
+                    value={analysisLimit}
+                    onChange={(e) => setAnalysisLimit(Number(e.target.value))}
+                  />
+                </div>
+
                 <div className="flex items-center justify-between p-4 bg-orange-50 rounded-2xl border border-orange-100">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl"><PackageSearch size={22} className="text-orange-600" /></span>
@@ -1937,7 +1967,7 @@ export default function AdminDashboard() {
                 </div>
 
                 <button 
-                  onClick={() => saveSyncSettings(remindMidday, remindEvening, remindClosing, lowStockThreshold)}
+                  onClick={() => saveSyncSettings(remindMidday, remindEvening, remindClosing, lowStockThreshold, analysisLimit)}
                   className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-slate-200 flex items-center justify-center gap-2 active:scale-95 mt-4"
                 >
                   <Save size={20} /> Simpan Pengaturan

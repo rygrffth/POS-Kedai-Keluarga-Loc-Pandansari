@@ -121,7 +121,8 @@ export function exportFullReportXlsx(
   history: any[],
   inventory: any[],
   soldMap: Record<string, number>,
-  expenses: any[]
+  expenses: any[],
+  analysisLimit: number = 10
 ) {
   const wb = XLSX.utils.book_new();
 
@@ -196,22 +197,14 @@ export function exportFullReportXlsx(
     XLSX.utils.book_append_sheet(wb, ws3, "Pengeluaran");
   }
 
-  // Sheet 4: Analisis Strategis
   const mostPop = [...inventory]
     .sort((a, b) => (b.sold_count ?? 0) - (a.sold_count ?? 0))
-    .slice(0, 10)
+    .slice(0, analysisLimit)
     .map(i => ({ "Kategori Analisis": "⭐ Produk Paling Laku", "Nama Produk": i.variant_name || i.products?.name || "-", "Detail": `Terjual ${i.sold_count || 0}` }));
 
-  // Smart Procurement (Simple Calculation for Excel based on soldMap)
-  const procurement = [...inventory]
-    .map(i => {
-      const sold = soldMap[i.id] || 0;
-      const needed = Math.max(0, Math.ceil(sold * 1.2) - (i.stock || 0)); // Suggest 20% more than previous period if stock low
-      return { i, needed, sold };
-    })
     .filter(x => x.needed > 0)
     .sort((a, b) => b.needed - a.needed)
-    .slice(0, 10)
+    .slice(0, analysisLimit)
     .map(x => ({ "Kategori Analisis": "🛒 Rekomendasi Kulakan", "Nama Produk": x.i.variant_name || x.i.products?.name || "-", "Detail": `Beli +${x.needed} unit (Terjual ${x.sold})` }));
 
   const profitAnalysis = [...inventory]
@@ -222,7 +215,7 @@ export function exportFullReportXlsx(
     })
     .filter(x => x.profit > 0)
     .sort((a, b) => b.profit - a.profit)
-    .slice(0, 10)
+    .slice(0, analysisLimit)
     .map(x => ({ "Kategori Analisis": "💰 Analisis Keuntungan", "Nama Produk": x.i.variant_name || x.i.products?.name || "-", "Detail": `Profit Rp ${x.profit.toLocaleString("id-ID")}` }));
 
   const critStock = inventory

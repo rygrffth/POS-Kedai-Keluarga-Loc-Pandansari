@@ -42,7 +42,8 @@ export async function POST(req: NextRequest) {
 
     const sheets = google.sheets({ version: "v4", auth });
 
-    const { transactions, inventory, soldMap, expenses } = await req.json();
+    const { transactions, inventory, soldMap, expenses, analysisLimit } = await req.json();
+    const limit = analysisLimit || 10;
 
     // ── Helper: format date ─────────────────────────────────────────────
     const fmtDate = (d: string) =>
@@ -129,29 +130,50 @@ export async function POST(req: NextRequest) {
     ]);
 
     // ANALISIS STRATEGIS (NEW SHEET)
-    const analisisHeader = ["Kategori Analisis", "Nama Produk", "Detail (Stok/Terjual)"];
+    const analisisHeader = ["Kategori Analisis", "Nama Produk", "Detail (Stok/Terjual/Profit)"];
     
+    // 1. Most Popular
     const mostPop = [...(inventory || [])]
       .sort((a, b) => (b.sold_count ?? 0) - (a.sold_count ?? 0))
-      .slice(0, 10)
+      .slice(0, limit)
       .map(i => ["⭐ Produk Paling Laku", i.variant_name || i.products?.name || "-", `Terjual ${i.sold_count || 0}`]);
 
-    const leastPop = [...(inventory || [])]
-      .sort((a, b) => (a.sold_count ?? 0) - (b.sold_count ?? 0))
-      .slice(0, 10)
-      .map(i => ["🐌 Produk Kurang Laku", i.variant_name || i.products?.name || "-", `Laku ${i.sold_count || 0}`]);
+    // 2. Profit Analysis (NEW)
+    const profitAnalysis = [...(inventory || [])]
+      .map(i => {
+        const sold = (soldMap || {})[i.id] || 0;
+        const profit = ((i.price || 0) - (i.hpp || 0)) * sold;
+        return { i, profit };
+      })
+      .filter(x => x.profit > 0)
+      .sort((a, b) => b.profit - a.profit)
+      .slice(0, limit)
+      .map(x => ["💰 Analisis Keuntungan", x.i.variant_name || x.i.products?.name || "-", `Profit Rp ${x.profit.toLocaleString("id-ID")}`]);
 
+    // 3. Smart Procurement (NEW)
+    const procurement = [...(inventory || [])]
+      .map(i => {
+        const sold = (soldMap || {})[i.id] || 0;
+        const needed = Math.max(0, Math.ceil(sold * 1.2) - (i.stock || 0)); 
+        return { i, needed, sold };
+      })
+      .filter(x => x.needed > 0)
+      .sort((a, b) => b.needed - a.needed)
+      .slice(0, limit)
+      .map(x => ["🛒 Rekomendasi Kulakan", x.i.variant_name || x.i.products?.name || "-", `Beli +${x.needed} unit (Terjual ${x.sold})`]);
+
+    // 4. Critical Stock
     const critStock = [...(inventory || [])]
       .filter(i => (i.stock ?? 0) <= 5)
       .sort((a,b) => (a.stock ?? 0) - (b.stock ?? 0))
       .map(i => ["⚠️ Stok Menipis", i.variant_name || i.products?.name || "-", `Sisa ${i.stock || 0} pcs`]);
 
-    const highStock = [...(inventory || [])]
-      .sort((a,b) => (b.stock ?? 0) - (a.stock ?? 0))
-      .slice(0, 10)
-      .map(i => ["📦 Stok Melimpah", i.variant_name || i.products?.name || "-", `Stok ${i.stock || 0}`]);
-
-    const analisisRows = [...mostPop, [], ...critStock, [], ...leastPop, [], ...highStock];
+    const analisisRows = [
+      ...mostPop, [], 
+      ...profitAnalysis, [], 
+      ...procurement, [], 
+      ...critStock
+    ];
 
     // ── Ensure sheets exist ────────────────────────────────────────────
     const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
