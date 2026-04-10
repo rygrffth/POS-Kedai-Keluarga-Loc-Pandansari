@@ -202,6 +202,12 @@ export function exportFullReportXlsx(
     .slice(0, analysisLimit)
     .map(i => ({ "Kategori Analisis": "⭐ Produk Paling Laku", "Nama Produk": i.variant_name || i.products?.name || "-", "Detail": `Terjual ${i.sold_count || 0}` }));
 
+  const procurement = [...inventory]
+    .map(i => {
+      const sold = soldMap[i.id] || 0;
+      const needed = Math.max(0, Math.ceil(sold * 1.2) - (i.stock || 0));
+      return { i, needed, sold };
+    })
     .filter(x => x.needed > 0)
     .sort((a, b) => b.needed - a.needed)
     .slice(0, analysisLimit)

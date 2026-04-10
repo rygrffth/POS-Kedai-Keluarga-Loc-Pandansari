@@ -1283,7 +1283,6 @@ export default function AdminDashboard() {
               <div className="mt-6 text-center">
                 <button onClick={() => setActiveTab('database')} className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline">Lihat Detail Analisis di Data Cloud / Google Sheets →</button>
               </div>
-            </div>
 
             {/* [NEW] Efisiensi Operasional Section */}
             <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
@@ -1317,11 +1316,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               </div>
-            </div>/button>
-              </div>
             </div>
-
-
 
             {/* Ringkasan + pertumbuhan + AOV */}
             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
@@ -1364,7 +1359,7 @@ export default function AdminDashboard() {
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} dy={10} />
                     <YAxis width={55} axisLine={false} tickLine={false} tickFormatter={(v) => `${v / 1000}k`} tick={{ fontSize: 11, fill: '#6b7280' }} />
                     <Tooltip 
-                      formatter={(v: any, name: string) => name === 'total' ? [`Rp ${v.toLocaleString('id-ID')}`, 'Pendapatan'] : [v, 'Info']} 
+                      formatter={(v: any, name?: any) => name === 'total' ? [`Rp ${v.toLocaleString('id-ID')}`, 'Pendapatan'] : [v, 'Info']} 
                       content={(props: any) => {
                         if (!props.active || !props.payload?.[0]) return null;
                         const data = props.payload[0].payload;
