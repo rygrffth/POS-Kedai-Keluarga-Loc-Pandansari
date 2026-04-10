@@ -1242,7 +1242,12 @@ export default function AdminDashboard() {
                   <Info size={14} />
                   <p className="text-[10px] font-bold uppercase tracking-tight">Atur periode ini sebelum melakukan Download Data atau Sync Sheets</p>
                 </div>
-                <button onClick={() => setActiveTab('database')} className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline flex items-center gap-1">Lihat Detail Analisis di Data Cloud / Google Sheets <ExternalLink size={12} /></button>
+                <button 
+                  onClick={() => setActiveTab('database')} 
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-black px-6 py-3 rounded-2xl transition-all shadow-lg shadow-blue-500/20 active:scale-95 flex items-center gap-2 uppercase tracking-tight"
+                >
+                  Lihat Detail Analisis di Data Cloud / Google Sheets <ExternalLink size={14} />
+                </button>
               </div>
             </div>
 
