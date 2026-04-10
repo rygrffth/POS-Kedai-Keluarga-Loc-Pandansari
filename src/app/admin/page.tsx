@@ -995,14 +995,14 @@ export default function AdminDashboard() {
                     type="date"
                     value={analyticsCustomFrom}
                     onChange={(e) => setAnalyticsCustomFrom(e.target.value)}
-                    className="flex-1 min-w-[140px] border border-gray-300 rounded-lg p-2 text-sm"
+                    className="flex-1 min-w-[140px] border border-gray-300 rounded-lg p-2 text-sm text-slate-900"
                   />
                   <span className="text-gray-400 text-sm">s/d</span>
                   <input
                     type="date"
                     value={analyticsCustomTo}
                     onChange={(e) => setAnalyticsCustomTo(e.target.value)}
-                    className="flex-1 min-w-[140px] border border-gray-300 rounded-lg p-2 text-sm"
+                    className="flex-1 min-w-[140px] border border-gray-300 rounded-lg p-2 text-sm text-slate-900"
                   />
                 </div>
               )}
@@ -1069,11 +1069,11 @@ export default function AdminDashboard() {
               </div>
               {showExpenseForm && (
                 <div className="space-y-3 bg-red-50 p-4 rounded-xl border border-red-100 mb-4 animate-in slide-in-from-top-2 duration-200">
-                  <select value={expenseCategory} onChange={e => setExpenseCategory(e.target.value)} className="w-full border border-gray-300 rounded-xl p-3 text-sm bg-white font-semibold">
+                  <select value={expenseCategory} onChange={e => setExpenseCategory(e.target.value)} className="w-full border border-gray-300 rounded-xl p-3 text-sm bg-white font-semibold text-slate-900">
                     <option>Kulakan</option><option>Listrik</option><option>Sewa</option><option>Gaji</option><option>Operasional</option><option>Lainnya</option>
                   </select>
-                  <input type="text" placeholder="Deskripsi (cth: Beli bahan kopi 5kg)" className="w-full border border-gray-300 rounded-xl p-3 text-sm" value={expenseDesc} onChange={e => setExpenseDesc(e.target.value)} />
-                  <input type="number" placeholder="Jumlah (Rp)" className="w-full border border-gray-300 rounded-xl p-3 text-sm font-bold" value={expenseAmount || ""} onChange={e => setExpenseAmount(Number(e.target.value) || "")} />
+                  <input type="text" placeholder="Deskripsi (cth: Beli bahan kopi 5kg)" className="w-full border border-gray-300 rounded-xl p-3 text-sm text-slate-900" value={expenseDesc} onChange={e => setExpenseDesc(e.target.value)} />
+                  <input type="number" placeholder="Jumlah (Rp)" className="w-full border border-gray-300 rounded-xl p-3 text-sm font-bold text-slate-900" value={expenseAmount || ""} onChange={e => setExpenseAmount(Number(e.target.value) || "")} />
                   <button onClick={handleAddExpense} className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl transition-all active:scale-95">Simpan Pengeluaran</button>
                 </div>
               )}
@@ -1276,9 +1276,9 @@ export default function AdminDashboard() {
               </div>
               {histPeriod === 'custom' && (
                 <div className="flex gap-2 mt-3">
-                  <input type="date" value={histCustomFrom} onChange={e => setHistCustomFrom(e.target.value)} className="flex-1 border border-gray-300 rounded-lg p-2 text-sm" />
+                  <input type="date" value={histCustomFrom} onChange={e => setHistCustomFrom(e.target.value)} className="flex-1 border border-gray-300 rounded-lg p-2 text-sm text-slate-900" />
                   <span className="text-gray-400 self-center text-sm">s/d</span>
-                  <input type="date" value={histCustomTo} onChange={e => setHistCustomTo(e.target.value)} className="flex-1 border border-gray-300 rounded-lg p-2 text-sm" />
+                  <input type="date" value={histCustomTo} onChange={e => setHistCustomTo(e.target.value)} className="flex-1 border border-gray-300 rounded-lg p-2 text-sm text-slate-900" />
                 </div>
               )}
               {/* Summary */}
@@ -1327,9 +1327,9 @@ export default function AdminDashboard() {
               </div>
               {invPeriod === 'custom' && (
                 <div className="flex gap-2 mt-3">
-                  <input type="date" value={invCustomFrom} onChange={e => setInvCustomFrom(e.target.value)} className="flex-1 border border-gray-300 rounded-lg p-2 text-sm" />
+                  <input type="date" value={invCustomFrom} onChange={e => setInvCustomFrom(e.target.value)} className="flex-1 border border-gray-300 rounded-lg p-2 text-sm text-slate-900" />
                   <span className="text-gray-400 self-center text-sm">s/d</span>
-                  <input type="date" value={invCustomTo} onChange={e => setInvCustomTo(e.target.value)} className="flex-1 border border-gray-300 rounded-lg p-2 text-sm" />
+                  <input type="date" value={invCustomTo} onChange={e => setInvCustomTo(e.target.value)} className="flex-1 border border-gray-300 rounded-lg p-2 text-sm text-slate-900" />
                 </div>
               )}
             </div>
