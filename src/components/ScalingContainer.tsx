@@ -58,7 +58,7 @@ export default function ScalingContainer({
   return (
     <div
       ref={containerRef}
-      className={`fixed inset-0 overflow-hidden flex items-center justify-center ${bg}`}
+      className={`fixed inset-0 overflow-y-auto flex flex-col items-center py-4 ${bg}`}
     >
       <div
         ref={contentRef}
@@ -66,7 +66,7 @@ export default function ScalingContainer({
           width: `${baseWidth}px`,
           height: `${baseHeight}px`,
           transform: `scale(${scale})`,
-          transformOrigin: "center center",
+          transformOrigin: "top center",
           transition: "transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
           flexShrink: 0,
         }}
