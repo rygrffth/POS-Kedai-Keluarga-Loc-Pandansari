@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { playBeepSound } from "@/lib/sounds";
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
+import ScalingContainer from "@/components/ScalingContainer";
 
 const Scanner = dynamic(() => import("@/components/Scanner"), { ssr: false });
 
@@ -237,8 +238,9 @@ export default function CustomerPage() {
   if (!mounted) return null;
 
   return (
-    <main className="min-h-screen bg-slate-50 flex flex-col font-sans mb-32">
-      <div className="bg-slate-900 text-white p-5 lg:p-6 shadow-xl sticky top-0 z-10 flex justify-between items-center no-print">
+    <ScalingContainer bg="bg-slate-900" baseWidth={480} baseHeight={960} mode="fit">
+      <main className="h-full bg-slate-50 flex flex-col font-sans overflow-y-auto pb-32 relative">
+        <div className="bg-slate-900 text-white p-5 lg:p-6 shadow-xl sticky top-0 z-10 flex justify-between items-center no-print w-full">
         <div onClick={handleSecretGateway} className="cursor-pointer select-none">
           <h1 className="text-xl lg:text-2xl font-black tracking-tight flex items-center gap-2">
             <ShoppingBag size={24} className="text-green-400" /> Kedai Keluarga
@@ -515,6 +517,7 @@ export default function CustomerPage() {
           </div>
         </div>
       )}
-    </main>
+      </main>
+    </ScalingContainer>
   );
 }

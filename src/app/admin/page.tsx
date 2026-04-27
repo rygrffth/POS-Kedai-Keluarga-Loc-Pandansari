@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, PieChart, Pie, Cell, Legend } from "recharts";
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
+import ScalingContainer from "@/components/ScalingContainer";
 import { exportTransactionsXlsx, exportInventoryXlsx, exportFullReportXlsx } from "@/lib/exportXlsx";
 import { syncToGoogleSheets } from "@/lib/googleSheets";
  
@@ -1039,23 +1040,26 @@ export default function AdminDashboard() {
 
   if (!authRole) {
     return (
-      <main className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-        <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full animate-in zoom-in-95 duration-300">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4"><Lock size={32} className="text-blue-600" /></div>
-          <h2 className="text-2xl font-black text-center text-slate-800 mb-2">POS Login</h2>
-          <p className="text-center text-gray-500 mb-6 text-sm">Masukkan PIN Kasir atau PIN Owner.</p>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <input type="password" value={pinInput} onChange={e => setPinInput(e.target.value)} placeholder="Masukkan Password" className="w-full text-center text-lg bg-gray-50 border border-gray-200 rounded-2xl px-4 py-4 focus:ring-4 focus:ring-blue-500 outline-none transition-all font-mono text-slate-900" autoFocus />
-            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg active:scale-95 text-lg">Masuk</button>
-          </form>
-        </div>
-      </main>
+      <ScalingContainer bg="bg-slate-900" baseWidth={430} baseHeight={800} mode="fit">
+        <main className="h-full bg-slate-900 flex items-center justify-center p-4">
+          <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full animate-in zoom-in-95 duration-300">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4"><Lock size={32} className="text-blue-600" /></div>
+            <h2 className="text-2xl font-black text-center text-slate-800 mb-2">POS Login</h2>
+            <p className="text-center text-gray-500 mb-6 text-sm">Masukkan PIN Kasir atau PIN Owner.</p>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <input type="password" value={pinInput} onChange={e => setPinInput(e.target.value)} placeholder="Masukkan Password" className="w-full text-center text-lg bg-gray-50 border border-gray-200 rounded-2xl px-4 py-4 focus:ring-4 focus:ring-blue-500 outline-none transition-all font-mono text-slate-900" autoFocus />
+              <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg active:scale-95 text-lg">Masuk</button>
+            </form>
+          </div>
+        </main>
+      </ScalingContainer>
     )
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 flex flex-col font-sans mb-10">
-      <div className="bg-slate-900 text-white p-5 shadow-lg sticky top-0 z-10 border-b border-slate-800 flex justify-between items-center no-print">
+    <ScalingContainer bg="bg-slate-100" baseWidth={1280} baseHeight={800} mode="width">
+      <main className="h-full bg-gray-50 flex flex-col font-sans overflow-y-auto relative">
+        <div className="bg-slate-900 text-white p-5 shadow-lg sticky top-0 z-10 border-b border-slate-800 flex justify-between items-center no-print w-full">
         <h1 className="text-xl font-black tracking-tight flex items-center gap-2">
           <ShoppingBag size={22} /> KEDAI KELUARGA <span className="text-[10px] bg-blue-600 px-2 py-1 rounded ml-2 uppercase font-mono">{authRole}</span>
         </h1>
@@ -2131,6 +2135,7 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
-    </main>
+      </main>
+    </ScalingContainer>
   );
 }
