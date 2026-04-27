@@ -648,6 +648,18 @@ export default function AdminDashboard() {
   };
 
   const handleRegisterProduct = async () => {
+    if (!newProductName.trim()) { alert("Nama produk wajib diisi!"); return; }
+    if (!newProductPrice || Number(newProductPrice) <= 0) { alert("Harga jual tidak valid!"); return; }
+    if (!newProductHpp || Number(newProductHpp) < 0) { alert("HPP tidak valid!"); return; }
+    
+    // Final duplicate barcode check
+    const existing = inventory.find(i => i.barcode?.toString().trim() === manualBarcode.trim());
+    if (existing) {
+      alert(`⚠️ Barcode "${manualBarcode}" sudah terdaftar untuk produk "${existing.variant_name || existing.products?.name}".`);
+      setIsNewProduct(false);
+      return;
+    }
+
     setIsRegistering(true);
     try {
       const { data: prodData, error: prodErr } = await supabase.from("products").insert([{ name: newProductName }]).select().single();

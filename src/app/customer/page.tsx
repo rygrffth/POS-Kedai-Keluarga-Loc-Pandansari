@@ -104,6 +104,14 @@ export default function CustomerPage() {
 
     setCart((prev) => {
       const existing = prev.find((item) => item.variant.id === variant.id);
+      const currentQty = existing ? existing.quantity : 0;
+      
+      // Stock Check
+      if (variant.stock !== null && variant.stock !== undefined && currentQty + 1 > variant.stock) {
+        alert(`⚠️ Maaf, stok "${variant.variant_name || variant.products?.name}" tidak mencukupi (Sisa: ${variant.stock})`);
+        return prev;
+      }
+
       if (existing) {
         return prev.map((item) =>
           item.variant.id === variant.id
@@ -152,6 +160,13 @@ export default function CustomerPage() {
     setCart((prev) => prev.map(item => {
       if (item.variant.id === variantId) {
         const newQ = item.quantity + delta;
+        
+        // Stock Check on Increase
+        if (delta > 0 && item.variant.stock !== null && item.variant.stock !== undefined && newQ > item.variant.stock) {
+          alert(`⚠️ Stok tidak mencukupi untuk menambah item ini.`);
+          return item;
+        }
+
         return newQ > 0 ? { ...item, quantity: newQ } : item;
       }
       return item;
