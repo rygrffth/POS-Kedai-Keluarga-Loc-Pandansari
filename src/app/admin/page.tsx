@@ -2070,36 +2070,92 @@ export default function AdminDashboard() {
         <div className="fixed inset-0 bg-slate-900/60 z-50 overflow-y-auto no-print">
           <div className="min-h-full flex justify-center p-4">
             <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl flex flex-col my-auto overflow-hidden">
-              <div className={`p-4 border-b flex justify-between items-center ${viewingTrx.status === 'paid' ? 'bg-green-100' : 'bg-slate-100'}`}><h3 className="font-bold flex items-center gap-2">{viewingTrx.status === 'paid' ? 'LUNAS' : viewingTrx.status === 'cancelled' ? 'BATAL' : 'DETAIL TRANSAKSI'}</h3></div>
-              <div id="printable-receipt" className="p-5 font-mono text-xs sm:text-sm text-black">
-                <div className="text-center font-bold text-lg">Kedai Keluarga</div><div className="border-b-2 border-dashed border-gray-400 my-2"></div>
-                <div className="flex justify-between"><span>Plg:</span><span className="font-bold">{viewingTrx.customer_name || '-'}</span></div>
-                <div className="flex justify-between"><span>Meja:</span><span className="font-bold uppercase">{viewingTrx.table_number || '-'}</span></div>
-                <div className="flex justify-between mb-2"><span>Tgl:</span><span>{new Date(viewingTrx.created_at).toLocaleString('id-ID')}</span></div>
-                <div className="border-b-2 border-dashed border-gray-400 my-2"></div>
-                <div className="space-y-1">{viewingTrx.transaction_items?.map((item: any) => (<div key={item.id}><div className="font-bold">{item.product_variants?.variant_name?.substring(0, 30)}</div><div className="flex justify-between"><span>{item.quantity} x {(item.unit_price || item.price || 0)}</span><span>{(item.quantity * (item.unit_price || item.price || 0))}</span></div></div>))}</div>
-                <div className="border-b-2 border-dashed border-gray-400 my-2"></div>
-                <div className="flex justify-between text-base font-bold mb-3"><span>TOTAL</span><span>Rp {(viewingTrx.total_amount || 0).toLocaleString('id-ID')}</span></div>
+              <div className={`p-5 border-b flex justify-between items-center ${viewingTrx.status === 'paid' ? 'bg-green-50' : 'bg-slate-50'}`}>
+                <h3 className={`font-black text-sm tracking-widest flex items-center gap-2 ${viewingTrx.status === 'paid' ? 'text-green-700' : 'text-slate-700'}`}>
+                  {viewingTrx.status === 'paid' ? (
+                    <><CheckCircle size={18} /> TRANSAKSI LUNAS</>
+                  ) : viewingTrx.status === 'cancelled' ? (
+                    <><AlertCircle size={18} /> TRANSAKSI BATAL</>
+                  ) : (
+                    <><Receipt size={18} /> DETAIL TRANSAKSI</>
+                  )}
+                </h3>
+                <div className={`px-3 py-1 rounded-full text-[10px] font-black ${viewingTrx.status === 'paid' ? 'bg-green-500 text-white' : 'bg-amber-500 text-white animate-pulse'}`}>
+                  {viewingTrx.status.toUpperCase()}
+                </div>
               </div>
-              <div className="p-4 bg-slate-50 border-t flex flex-col gap-2 rounded-b-3xl">
+              <div id="printable-receipt" className="p-6 font-mono text-[11px] sm:text-xs text-slate-900 bg-white">
+                <div className="text-center">
+                  <p className="font-black text-lg tracking-tighter mb-0.5">KEDAI KELUARGA</p>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Premium POS System</p>
+                </div>
+                <div className="border-b-2 border-dashed border-slate-200 my-4"></div>
+                
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center"><span className="text-slate-400 font-bold">CUSTOMER:</span><span className="font-black text-slate-800 uppercase">{viewingTrx.customer_name || 'UMUM'}</span></div>
+                  <div className="flex justify-between items-center"><span className="text-slate-400 font-bold">MEJA/LOKASI:</span><span className="font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded uppercase">{viewingTrx.table_number || 'TAKEAWAY'}</span></div>
+                  <div className="flex justify-between items-center"><span className="text-slate-400 font-bold">WAKTU:</span><span className="font-medium text-slate-600">{new Date(viewingTrx.created_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span></div>
+                </div>
+
+                <div className="border-b-2 border-dashed border-slate-200 my-4"></div>
+                
+                <div className="space-y-3">
+                  {viewingTrx.transaction_items?.map((item: any) => (
+                    <div key={item.id} className="flex flex-col">
+                      <div className="font-black text-slate-800 leading-tight mb-0.5">{item.product_variants?.variant_name || item.product_variants?.products?.name}</div>
+                      <div className="flex justify-between items-center text-slate-500 font-bold">
+                        <span>{item.quantity} x {Number(item.unit_price || item.price || 0).toLocaleString('id-ID')}</span>
+                        <span className="text-slate-800">{(item.quantity * Number(item.unit_price || item.price || 0)).toLocaleString('id-ID')}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="border-b-2 border-dashed border-slate-200 my-4"></div>
+                
+                <div className="flex justify-between items-center text-base font-black text-slate-900 bg-slate-50 p-3 rounded-xl">
+                  <span>TOTAL AKHIR</span>
+                  <span className="text-lg text-blue-600">Rp {(viewingTrx.total_amount || 0).toLocaleString('id-ID')}</span>
+                </div>
+
+                <div className="mt-6 text-center">
+                  <p className="text-[8px] text-slate-300 font-bold uppercase tracking-[0.3em]">Terima Kasih • Kedai Keluarga</p>
+                  <p className="text-[7px] text-slate-200 mt-1">ID: {viewingTrx.id}</p>
+                </div>
+              </div>
+              <div className="p-4 bg-slate-50 border-t flex flex-col gap-3 rounded-b-3xl">
                 {viewingTrx.status === 'pending' && authRole && (
                   <>
-                    <div className="flex gap-2 mb-2">
+                    <div className="flex gap-2 mb-1">
                       {['Tunai', 'QRIS', 'Transfer'].map(method => (
-                        <button key={method} onClick={() => setPaymentMethod(method)} className={`flex-1 py-2.5 rounded-xl font-bold text-sm border-2 transition-all ${paymentMethod === method ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-gray-500 border-gray-200 hover:border-blue-300'}`}>{method}</button>
+                        <button key={method} onClick={() => setPaymentMethod(method)} className={`flex-1 py-3 rounded-xl font-bold text-xs border-2 transition-all ${paymentMethod === method ? 'bg-blue-600 text-white border-blue-600 shadow-md scale-105 z-10' : 'bg-white text-gray-400 border-gray-100 hover:border-blue-200'}`}>{method}</button>
                       ))}
                     </div>
-                    <button onClick={handleProcessPayment} className="w-full bg-green-500 hover:bg-green-600 text-white font-black py-4 rounded-xl">💰 BAYAR ({paymentMethod})</button>
-                    <button onClick={() => setShowCancelConfirm(true)} className="w-full bg-red-100 text-red-700 font-bold py-2 rounded-xl">Batalkan Pesanan (Miskom)</button>
+                    <button onClick={handleProcessPayment} className="w-full bg-green-500 hover:bg-green-600 text-white font-black py-4 rounded-xl shadow-lg shadow-green-100 transition-all active:scale-95 flex items-center justify-center gap-2">
+                      <CheckCircle size={20} /> BAYAR SEKARANG ({paymentMethod})
+                    </button>
+                    <button onClick={() => setShowCancelConfirm(true)} className="w-full bg-red-50 hover:bg-red-100 text-red-600 font-bold py-2.5 rounded-xl text-xs transition-colors">
+                      Batalkan Pesanan (Miskom)
+                    </button>
                   </>
                 )}
-                <div className="flex gap-2">
-                  <button onClick={handlePrintPDF} className="flex-1 bg-white border border-gray-300 font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1"><Download size={16} /> Unduh PDF</button>
-                  <button onClick={handlePrintBluetooth} className="flex-1 bg-slate-900 text-white font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1"><Smartphone size={16} /> Print Kasir</button>
+                <div className="flex gap-2 mt-1">
+                  <button onClick={handlePrintPDF} className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-md active:scale-95">
+                    <Download size={16} /> Unduh PDF
+                  </button>
+                  <button onClick={handlePrintBluetooth} className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-md active:scale-95">
+                    <Smartphone size={16} /> Print Kasir
+                  </button>
                 </div>
                 <div className="mt-2 flex gap-2">
-                  <button onClick={() => setViewingTrx(null)} className="flex-[3] bg-gray-200 text-gray-800 font-bold py-3 rounded-xl"><X size={18} className="inline" /> Tutup Modal</button>
-                  {viewingTrx.status !== 'pending' && <button onClick={() => setShowDeleteConfirm(true)} className="flex-1 flex justify-center items-center bg-red-50 text-red-600 rounded-xl border border-red-200"><Trash2 size={20} /></button>}
+                  <button onClick={() => setViewingTrx(null)} className="flex-[3] bg-white border border-gray-200 text-gray-600 font-bold py-3 rounded-xl hover:bg-gray-50 transition-colors text-sm">
+                    <X size={18} className="inline mr-1" /> Tutup Detail
+                  </button>
+                  {viewingTrx.status !== 'pending' && (
+                    <button onClick={() => setShowDeleteConfirm(true)} className="flex-1 flex justify-center items-center bg-red-50 text-red-500 rounded-xl border border-red-100 hover:bg-red-500 hover:text-white transition-all">
+                      <Trash2 size={20} />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

@@ -423,7 +423,7 @@ export default function CustomerPage() {
                 <input type="text" placeholder="Nama Anda (Wajib)" className="bg-transparent w-full text-sm font-bold text-slate-900 outline-none placeholder:font-normal placeholder-gray-400" value={customerName} onChange={e => setCustomerName(e.target.value)} />
               </div>
               <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 flex-1 flex items-center gap-2">
-                <span className="text-gray-400 font-bold text-xs">Meja</span>
+                <span className="text-slate-500 font-black text-[10px] uppercase tracking-wider">Meja</span>
                 <input type="text" placeholder="No." className="bg-transparent w-full text-sm font-black text-blue-700 outline-none placeholder:font-normal placeholder-gray-400 uppercase text-center" value={tableNumber} onChange={e => setTableNumber(e.target.value)} maxLength={3} />
               </div>
             </div>
@@ -431,7 +431,7 @@ export default function CustomerPage() {
               <div className="flex-1 pl-2">
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">Total Belanja</p>
                 <p className="text-xl font-black text-gray-800 leading-none">
-                  <span className="text-sm font-semibold text-gray-400 mr-1">Rp</span>
+                  <span className="text-xs font-black text-slate-400 mr-1">RP</span>
                   {total.toLocaleString('id-ID')}
                 </p>
               </div>
