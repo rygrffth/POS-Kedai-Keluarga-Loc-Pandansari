@@ -148,8 +148,11 @@ function aggregatePeriodMetrics(
   const payMethodMap: Record<string, number> = { Tunai: 0, QRIS: 0, Transfer: 0, Lainnya: 0 };
   const hourMap: Record<number, number> = {};
   for (let h = 0; h < 24; h++) hourMap[h] = 0;
+  const dayMap: Record<number, { revenue: number; count: number }> = {};
+  for (let d = 0; d < 7; d++) dayMap[d] = { revenue: 0, count: 0 };
   const sellerMap: Record<string, number> = {};
   const categoryRevenue: Record<string, number> = { Makanan: 0, Minuman: 0, Snack: 0, Lainnya: 0 };
+  const categoryProfit: Record<string, number> = { Makanan: 0, Minuman: 0, Snack: 0, Lainnya: 0 };
 
   history.forEach((trx) => {
     if (trx.status !== "paid") return;
@@ -162,12 +165,14 @@ function aggregatePeriodMetrics(
     let trxHpp = 0;
     trx.transaction_items?.forEach((item: any) => {
       const currentHpp = item.hpp || item.product_variants?.hpp || 0;
-      trxHpp += currentHpp * item.quantity;
+      const itemModal = currentHpp * item.quantity;
+      trxHpp += itemModal;
       const pname = item.product_variants?.products?.name || "";
       const vname = item.product_variants?.variant_name || "";
       const cat = inferSaleCategory(pname, vname);
       const sub = (item.unit_price ?? item.product_variants?.price ?? 0) * item.quantity;
       categoryRevenue[cat] = (categoryRevenue[cat] || 0) + sub;
+      categoryProfit[cat] = (categoryProfit[cat] || 0) + (sub - itemModal);
     });
     hpp += trxHpp;
 
@@ -178,6 +183,8 @@ function aggregatePeriodMetrics(
     else payMethodMap.Lainnya += amt;
 
     hourMap[tDate.getHours()] += 1;
+    dayMap[tDate.getDay()].revenue += amt;
+    dayMap[tDate.getDay()].count += 1;
 
     trx.transaction_items?.forEach((item: any) => {
       const name = item.product_variants?.variant_name || item.product_variants?.products?.name || "Unknown";
@@ -194,7 +201,7 @@ function aggregatePeriodMetrics(
   const netProfit = omzet - hpp - expense;
   const aov = trxCount > 0 ? omzet / trxCount : 0;
 
-  return { omzet, hpp, expense, netProfit, trxCount, aov, payMethodMap, hourMap, sellerMap, categoryRevenue };
+  return { omzet, hpp, expense, netProfit, trxCount, aov, payMethodMap, hourMap, dayMap, sellerMap, categoryRevenue, categoryProfit };
 }
 
 function buildTrendChartData(history: any[], start: Date, end: Date): { name: string; total: number }[] {
@@ -869,10 +876,17 @@ export default function AdminDashboard() {
     const chartElements = buildTrendChartData(history, start, end);
     const payMethodChart = Object.entries(curr.payMethodMap)
       .filter(([, v]) => v > 0)
-      .map(([name, value]) => ({ name, value }));
-    const rushHourChart = Object.entries(curr.hourMap)
+      .map(([name,    const rushHourChart = Object.entries(curr.hourMap)
       .filter(([, v]) => v > 0)
       .map(([h, count]) => ({ name: `${h}:00`, count }));
+    
+    const dayNames = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+    const dayOfWeekChart = Object.entries(curr.dayMap).map(([dayIdx, val]) => ({
+      name: dayNames[Number(dayIdx)],
+      revenue: val.revenue,
+      orders: val.count
+    }));
+
     const bestSellerChart = Object.entries(curr.sellerMap)
       .sort(([, a], [, b]) => b - a)
       .slice(0, 8)
@@ -881,6 +895,10 @@ export default function AdminDashboard() {
     const categoryChart = Object.entries(curr.categoryRevenue)
       .filter(([, v]) => v > 0)
       .map(([name, value]) => ({ name, value }));
+
+    const categoryProfitChart = Object.entries(curr.categoryProfit)
+      .filter(([, v]) => v > 0)
+      .map(([name, profit]) => ({ name, profit }));
 
     const variantSold: Record<string, number> = {};
     history.forEach((trx) => {
@@ -894,6 +912,16 @@ export default function AdminDashboard() {
       });
     });
 
+    const deadStock = [...inventory]
+      .filter((inv: any) => !variantSold[inv.id])
+      .map((inv: any) => ({
+        name: inv.variant_name || inv.products?.name || "Produk",
+        stock: inv.stock || 0,
+        price: inv.price || 0
+      }))
+      .sort((a, b) => b.stock - a.stock)
+      .slice(0, 8);
+
     const worstSellerChart = [...inventory]
       .map((inv: any) => ({
         name: (inv.variant_name || inv.products?.name || "?").substring(0, 18),
@@ -901,7 +929,8 @@ export default function AdminDashboard() {
       }))
       .sort((a, b) => a.sold - b.sold)
       .slice(0, 8);
-
+    
+    // ... rest of analytics logic remains same ...
     const lowStockItems = [...inventory]
       .sort((a: any, b: any) => (a.stock ?? 0) - (b.stock ?? 0))
       .slice(0, 5)
@@ -914,11 +943,11 @@ export default function AdminDashboard() {
 
     // Advanced Inventory Insights
     const mostPopular = [...inventory]
-      .sort((a: any, b: any) => (b.sold_count ?? 0) - (a.sold_count ?? 0))
+      .sort((a: any, b: any) => (b.sold_count ?? 0) - (a.stock ?? 0))
       .slice(0, 10);
     
     const leastPopular = [...inventory]
-      .sort((a: any, b: any) => (a.sold_count ?? 0) - (b.sold_count ?? 0))
+      .sort((a: any, b: any) => (a.sold_count ?? 0) - (a.stock ?? 0))
       .slice(0, 10);
       
     const highStock = [...inventory]
@@ -1004,9 +1033,12 @@ export default function AdminDashboard() {
       chartElements,
       payMethodChart,
       rushHourChart,
+      dayOfWeekChart,
       bestSellerChart,
       worstSellerChart,
       categoryChart,
+      categoryProfitChart,
+      deadStock,
       mostPopular,
       leastPopular,
       highStock,
@@ -1016,7 +1048,7 @@ export default function AdminDashboard() {
       expenseRatioData,
       variantSold,
     };
-  }, [history, expenses, inventory, analyticsPeriod, analyticsCustomFrom, analyticsCustomTo]);
+  }, [history, expenses, inventory, analyticsPeriod, analyticsCustomFrom, analyticsCustomTo, lowStockThreshold, analysisLimit]);
 
   const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1'];
 
@@ -1396,18 +1428,13 @@ export default function AdminDashboard() {
                     <p className="text-xs text-slate-500 leading-relaxed font-medium">
                       {(analyticsData.expense / (analyticsData.omzet || 1)) > 0.3 ? 
                         "🔥 Biaya operasional Anda cukup tinggi (>30%). Pertimbangkan efisiensi di pos pengeluaran." : 
-                        "✅ Efisiensi biaya Anda sangat baik. Tetap pertahankan rasio di bawah 30%."}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Ringkasan + pertumbuhan + AOV */}
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+        {activeTab === "analytics" && authRole === "owner" && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            {/* STATS OVERVIEW CARDS */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-l-blue-500">
                 <p className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><DollarSign size={12} /> Omzet</p>
-                <p className="text-lg sm:text-xl font-black text-slate-800 mt-1">Rp {analyticsData.omzet.toLocaleString("id-ID")}</p>
+                <p className="text-lg sm:text-xl font-black text-blue-600 mt-1">Rp {analyticsData.omzet.toLocaleString("id-ID")}</p>
                 {formatGrowthLine(analyticsData.growthOmzet)}
               </div>
               <div className="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-l-orange-400">
@@ -1433,7 +1460,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* GRAFIK TREN PENJUALAN (LINE CHART) */}
+            {/* TREND PENJUALAN */}
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
               <h3 className="text-sm font-bold text-gray-800 mb-1 uppercase tracking-wider flex items-center gap-2"><TrendingUp size={16} /> Tren penjualan</h3>
               <p className="text-[10px] text-gray-400 mb-4">{analyticsData.rangeLabel} · {analyticsData.trendGranularity}</p>
@@ -1479,142 +1506,71 @@ export default function AdminDashboard() {
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-
-              {/* Form Tambah Catatan */}
-              <div className="mt-6 pt-6 border-t border-slate-50">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">📅 Tambah Catatan Bisnis (Kalender Event)</p>
-                <div className="flex flex-wrap gap-2">
-                  <input 
-                    type="date" 
-                    className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500" 
-                    value={selectedNoteDate}
-                    onChange={(e) => {
-                      setSelectedNoteDate(e.target.value);
-                      const existing = businessNotes.find(n => n.date === e.target.value);
-                      setNoteInput(existing ? existing.note : "");
-                    }}
-                  />
-                  <input 
-                    type="text" 
-                    placeholder="Contoh: Hujan Badai / Ada Konser Slank / Promo 50%" 
-                    className="flex-1 min-w-[200px] p-3 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 outline-none focus:ring-2 focus:ring-blue-500" 
-                    value={noteInput}
-                    onChange={(e) => setNoteInput(e.target.value)}
-                  />
-                  <button 
-                    onClick={handleSaveNote}
-                    disabled={isSavingNote || !noteInput}
-                    className="bg-slate-900 hover:bg-slate-800 text-white font-black px-6 py-3 rounded-xl text-xs transition-all shadow-lg active:scale-95 flex items-center gap-2 disabled:opacity-50"
-                  >
-                    {isSavingNote ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Simpan Catatan
-                  </button>
-                </div>
-                <p className="text-[9px] text-slate-400 mt-2 italic">*Catatan akan muncul sebagai titik orange di grafik penjualan.</p>
-              </div>
             </div>
 
-            {/* === SECTION 3 & 4: PIE + BEST SELLER SIDE BY SIDE === */}
+            {/* HARIAN & JAM SIBUK */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Payment Method Donut */}
-              <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                <h3 className="text-sm font-bold text-gray-800 mb-4 uppercase tracking-wider">Metode Pembayaran</h3>
-                {analyticsData.payMethodChart.length > 0 ? (
-                  <div className="h-52"><ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={analyticsData.payMethodChart} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={80} paddingAngle={3} label={({ name, percent }: any) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                        {analyticsData.payMethodChart.map((_: any, i: number) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                      </Pie>
-                      <Tooltip formatter={(v: any) => `Rp ${v.toLocaleString('id-ID')}`} />
-                    </PieChart>
-                  </ResponsiveContainer></div>
-                ) : <p className="text-gray-400 text-center py-10 text-sm">Belum ada data pembayaran</p>}
-              </div>
-
-              {/* Best Sellers */}
-              <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                <h3 className="text-sm font-bold text-gray-800 mb-4 uppercase tracking-wider">🔥 Produk Terlaris</h3>
-                {analyticsData.bestSellerChart.length > 0 ? (
-                  <div className="h-52"><ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={analyticsData.bestSellerChart} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.3} />
-                      <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
-                      <YAxis type="category" dataKey="name" width={100} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#374151' }} />
-                      <Tooltip formatter={(v: any) => [`${v} pcs`, 'Terjual']} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgb(0 0 0 / 0.1)' }} />
-                      <Bar dataKey="sold" fill="#f59e0b" radius={[0, 4, 4, 0]} barSize={18} />
-                    </BarChart>
-                  </ResponsiveContainer></div>
-                ) : <p className="text-gray-400 text-center py-10 text-sm">Belum ada data penjualan</p>}
-              </div>
-            </div>
-
-            {/* Kategori (pie) + Kurang laris */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                <h3 className="text-sm font-bold text-gray-800 mb-1 uppercase tracking-wider flex items-center gap-2">
-                  <PieChartIcon size={16} /> Penjualan per kategori
+              <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100">
+                <h3 className="text-sm font-black text-slate-800 mb-1 uppercase tracking-widest flex items-center gap-2">
+                  <CalendarDays size={18} className="text-blue-500" /> Performa Harian
                 </h3>
-                <p className="text-[10px] text-gray-400 mb-4">Estimasi dari nama produk (Makanan / Minuman / Snack / Lainnya)</p>
-                {analyticsData.categoryChart.length > 0 ? (
-                  <div className="h-52">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={analyticsData.categoryChart}
-                          dataKey="value"
-                          nameKey="name"
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={40}
-                          outerRadius={72}
-                          paddingAngle={3}
-                          label={(props: any) => `${props.name ?? ""} ${((props.percent ?? 0) * 100).toFixed(0)}%`}
-                        >
-                          {analyticsData.categoryChart.map((_: unknown, i: number) => (
-                            <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={(v: any) => `Rp ${Number(v ?? 0).toLocaleString("id-ID")}`} />
-                        <Legend wrapperStyle={{ fontSize: 11 }} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
-                  <p className="text-gray-400 text-center py-10 text-sm">Belum ada penjualan di periode ini</p>
-                )}
+                <p className="text-[10px] text-slate-400 mb-6 font-bold">Pesanan terbanyak berdasarkan hari</p>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={analyticsData.dayOfWeekChart}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
+                      <Tooltip contentStyle={{ borderRadius: '16px', border: 'none' }} />
+                      <Bar dataKey="orders" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
 
-              <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                <h3 className="text-sm font-bold text-gray-800 mb-1 uppercase tracking-wider">📉 Kurang laris (dead stock)</h3>
-                <p className="text-[10px] text-gray-400 mb-4">Unit terjual di periode ini — rendah ke tinggi</p>
-                {analyticsData.worstSellerChart.length > 0 ? (
-                  <div className="h-52">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={analyticsData.worstSellerChart} layout="vertical">
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.3} />
-                        <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#6b7280" }} allowDecimals={false} />
-                        <YAxis type="category" dataKey="name" width={100} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#374151" }} />
-                        <Tooltip formatter={(v: any) => [`${v ?? 0} pcs`, "Terjual"]} contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 4px 12px rgb(0 0 0 / 0.1)" }} />
-                        <Bar dataKey="sold" fill="#94a3b8" radius={[0, 4, 4, 0]} barSize={18} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
-                  <p className="text-gray-400 text-center py-10 text-sm">Belum ada data inventori</p>
-                )}
+              <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100">
+                <h3 className="text-sm font-black text-slate-800 mb-1 uppercase tracking-widest flex items-center gap-2">
+                  <Clock size={18} className="text-orange-500" /> Rush Hour Detail
+                </h3>
+                <p className="text-[10px] text-slate-400 mb-6 font-bold">Kapan pelanggan paling banyak datang</p>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={analyticsData.rushHourChart}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#64748b' }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
+                      <Tooltip contentStyle={{ borderRadius: '16px', border: 'none' }} />
+                      <Bar dataKey="count" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={12} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </div>
 
-            {/* === SECTION 5: RUSH HOUR ANALYSIS === */}
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-              <h3 className="text-sm font-bold text-gray-800 mb-4 uppercase tracking-wider flex items-center gap-2"><Clock size={16} /> Analisa Jam Sibuk</h3>
-              {analyticsData.rushHourChart.length > 0 ? (
-                <div className="h-52"><ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={analyticsData.rushHourChart}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} dy={5} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} allowDecimals={false} />
-                    <Tooltip formatter={(v: any) => [`${v} transaksi`, 'Jumlah']} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgb(0 0 0 / 0.1)' }} />
-                    <Bar dataKey="count" fill="#8b5cf6" radius={[4, 4, 0, 0]} barSize={20} />
+            {/* MARGIN & DEAD STOCK */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden relative">
+                <h3 className="text-sm font-black text-slate-800 mb-6 uppercase tracking-widest flex items-center gap-2">
+                  <PieChartIcon size={18} className="text-emerald-500" /> Margin per Kategori
+                </h3>
+                <div className="h-64 relative">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={analyticsData.categoryProfitChart}
+                        dataKey="profit"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={90}
+                        paddingAngle={5}
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {analyticsData.categoryProfitChart.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip formatter={(v: any) => `Laba: Rp ${v.toLocaleString('id-ID')}`} />
+                    </PieChart>
                   </BarChart>
                 </ResponsiveContainer></div>
               ) : <p className="text-gray-400 text-center py-10 text-sm">Belum ada data transaksi per jam</p>}
