@@ -446,7 +446,7 @@ export default function CustomerPage() {
       {/* ================= LOCK SCREEN MODAL RECEIPT CUSTOMER ================= */}
       {receiptData && (
         <div className="fixed inset-0 bg-slate-900 backdrop-blur-md z-50 overflow-y-auto no-print">
-          <div className="min-h-full flex justify-center p-4">
+          <div className="min-h-full flex justify-center py-8 px-4">
             <div className="bg-white rounded-[2.5rem] w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 my-auto">
               <div className="bg-green-500 p-8 text-center text-white relative">
                 <Lock size={48} className="mx-auto mb-3 opacity-90" />

@@ -1057,7 +1057,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <ScalingContainer bg="bg-slate-100" baseWidth={1280} baseHeight={800} mode="width">
+    <ScalingContainer bg="bg-slate-100" baseWidth={1280} baseHeight={1000} mode="width">
       <main className="h-full bg-gray-50 flex flex-col font-sans overflow-y-auto relative">
         <div className="bg-slate-900 text-white p-5 shadow-lg sticky top-0 z-10 border-b border-slate-800 flex justify-between items-center no-print w-full">
         <h1 className="text-xl font-black tracking-tight flex items-center gap-2">
@@ -2068,8 +2068,8 @@ export default function AdminDashboard() {
       {/* Modal Transaction */}
       {viewingTrx && (
         <div className="fixed inset-0 bg-slate-900/60 z-50 overflow-y-auto no-print">
-          <div className="min-h-full flex justify-center p-4">
-            <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl flex flex-col my-auto overflow-hidden">
+          <div className="min-h-full flex justify-center py-8 px-4">
+            <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden">
               <div className={`p-5 border-b flex justify-between items-center ${viewingTrx.status === 'paid' ? 'bg-green-50' : 'bg-slate-50'}`}>
                 <h3 className={`font-black text-sm tracking-widest flex items-center gap-2 ${viewingTrx.status === 'paid' ? 'text-green-700' : 'text-slate-700'}`}>
                   {viewingTrx.status === 'paid' ? (
