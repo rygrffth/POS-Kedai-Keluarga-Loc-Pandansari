@@ -876,7 +876,8 @@ export default function AdminDashboard() {
     const chartElements = buildTrendChartData(history, start, end);
     const payMethodChart = Object.entries(curr.payMethodMap)
       .filter(([, v]) => v > 0)
-      .map(([name,    const rushHourChart = Object.entries(curr.hourMap)
+      .map(([name, value]) => ({ name, value }));
+    const rushHourChart = Object.entries(curr.hourMap)
       .filter(([, v]) => v > 0)
       .map(([h, count]) => ({ name: `${h}:00`, count }));
     
