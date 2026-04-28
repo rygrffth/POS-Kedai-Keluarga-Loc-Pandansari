@@ -64,7 +64,8 @@ export default function ScalingContainer({
         ref={contentRef}
         style={{
           width: `${baseWidth}px`,
-          height: `${baseHeight}px`,
+          height: mode === "width" ? "auto" : `${baseHeight}px`,
+          minHeight: mode === "width" ? `${baseHeight}px` : undefined,
           transform: `scale(${scale})`,
           transformOrigin: "top center",
           transition: "transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)",

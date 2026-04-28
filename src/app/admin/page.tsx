@@ -1158,33 +1158,36 @@ export default function AdminDashboard() {
   return (
     <ScalingContainer bg="bg-slate-100" baseWidth={1280} baseHeight={1000} mode="width">
       <main className="h-full bg-gray-50 flex flex-col font-sans overflow-y-auto relative">
-        <div className="bg-slate-900 text-white p-5 shadow-lg sticky top-0 z-10 border-b border-slate-800 flex justify-between items-center no-print w-full">
-        <h1 className="text-xl font-black tracking-tight flex items-center gap-2">
-          <ShoppingBag size={22} /> KEDAI KELUARGA <span className="text-[10px] bg-blue-600 px-2 py-1 rounded ml-2 uppercase font-mono">{authRole}</span>
-        </h1>
-        <button onClick={() => { setAuthRole(null); localStorage.removeItem("pos_admin_role"); window.location.href = '/'; }} className="text-xs bg-slate-800 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-lg transition-colors font-bold flex items-center gap-1.5 shadow-sm"><Lock size={14} /> Ganti Role</button>
-      </div>
+      {/* Sticky Header & Tabs */}
+      <div className="sticky top-0 z-20 no-print">
+        <div className="bg-slate-900 text-white p-5 shadow-lg border-b border-slate-800 flex justify-between items-center w-full">
+          <h1 className="text-xl font-black tracking-tight flex items-center gap-2">
+            <ShoppingBag size={22} /> KEDAI KELUARGA <span className="text-[10px] bg-blue-600 px-2 py-1 rounded ml-2 uppercase font-mono">{authRole}</span>
+          </h1>
+          <button onClick={() => { setAuthRole(null); localStorage.removeItem("pos_admin_role"); window.location.href = '/'; }} className="text-xs bg-slate-800 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-lg transition-colors font-bold flex items-center gap-1.5 shadow-sm"><Lock size={14} /> Ganti Role</button>
+        </div>
 
-      {/* Tabs */}
-      <div className="flex bg-white shadow-sm border-b border-gray-200 no-print overflow-x-auto pb-1 text-sm sm:text-base font-medium scrollbar-hide">
-        <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'transactions' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('transactions')}><ListOrdered size={18} /> Antrean  {transactions.length > 0 && <span className="bg-red-500 text-white px-2 py-0.5 rounded-full text-xs">{transactions.length}</span>}</button>
-        <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'tables' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('tables')}><LayoutGrid size={18} /> Denah Meja</button>
-        <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'closing' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('closing')}><CheckCircle size={18} /> Tutup Toko</button>
-        {authRole === 'owner' && <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'inventory' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('inventory')}><PackageSearch size={18} /> Inventori</button>}
-        
-        {/* NEW TAB: EXPENSES */}
-        {authRole === 'owner' && <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'expenses' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('expenses')}><Receipt size={18} /> Pengeluaran</button>}
-        
-        <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'history' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('history')}><History size={18} /> Riwayat</button>
-        {authRole === 'owner' && <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'analytics' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('analytics')}><BarChart3 size={18} /> Analytics</button>}
-        
-        {/* NEW TAB: DATA CLOUD */}
-        {authRole === 'owner' && <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'database' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('database')}><Cloud size={18} /> Data Cloud</button>}
-        
-        {/* NEW TAB: SETTINGS */}
-        {authRole === 'owner' && <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'settings' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('settings')}><Settings size={18} /> Settings</button>}
-        
-        <button className="px-4 py-4 text-slate-500 hover:text-blue-600 transition-colors ml-auto sm:ml-0" onClick={loadData} title="Sinkronkan Data Manual"><RotateCcw size={18} /></button>
+        {/* Tabs */}
+        <div className="flex bg-white shadow-sm border-b border-gray-200 overflow-x-auto pb-1 text-sm sm:text-base font-medium scrollbar-hide">
+          <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'transactions' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('transactions')}><ListOrdered size={18} /> Antrean  {transactions.length > 0 && <span className="bg-red-500 text-white px-2 py-0.5 rounded-full text-xs">{transactions.length}</span>}</button>
+          <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'tables' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('tables')}><LayoutGrid size={18} /> Denah Meja</button>
+          <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'closing' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('closing')}><CheckCircle size={18} /> Tutup Toko</button>
+          {authRole === 'owner' && <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'inventory' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('inventory')}><PackageSearch size={18} /> Inventori</button>}
+          
+          {/* NEW TAB: EXPENSES */}
+          {authRole === 'owner' && <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'expenses' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('expenses')}><Receipt size={18} /> Pengeluaran</button>}
+          
+          <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'history' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('history')}><History size={18} /> Riwayat</button>
+          {authRole === 'owner' && <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'analytics' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('analytics')}><BarChart3 size={18} /> Analytics</button>}
+          
+          {/* NEW TAB: DATA CLOUD */}
+          {authRole === 'owner' && <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'database' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('database')}><Cloud size={18} /> Data Cloud</button>}
+          
+          {/* NEW TAB: SETTINGS */}
+          {authRole === 'owner' && <button className={`px-4 sm:flex-1 py-4 transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'settings' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 font-bold' : 'text-gray-500'}`} onClick={() => setActiveTab('settings')}><Settings size={18} /> Settings</button>}
+          
+          <button className="px-4 py-4 text-slate-500 hover:text-blue-600 transition-colors ml-auto sm:ml-0" onClick={loadData} title="Sinkronkan Data Manual"><RotateCcw size={18} /></button>
+        </div>
       </div>
 
       {/* Sync Reminder Banner */}
