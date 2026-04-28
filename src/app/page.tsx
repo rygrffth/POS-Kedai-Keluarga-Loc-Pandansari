@@ -13,9 +13,9 @@ export default function Home() {
   }, []);
 
   return (
-    <ScalingContainer bg="bg-slate-50" baseWidth={810} baseHeight={1080}>
+    <ScalingContainer bg="bg-slate-50" baseWidth={1280} baseHeight={800} mode="width">
       <main className="h-full bg-slate-50 flex items-center justify-center p-8 overflow-y-auto">
-        <div className="max-w-2xl w-full text-center">
+        <div className="max-w-6xl w-full text-center">
           <div className="w-24 h-24 bg-blue-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-500/30">
             <Store size={48} className="text-white" />
           </div>
@@ -23,7 +23,7 @@ export default function Home() {
           <h1 className="text-4xl font-black text-slate-800 tracking-tight mb-2">KEDAI KELUARGA</h1>
           <p className="text-slate-500 font-medium mb-12">Pilih mode aplikasi untuk memulai</p>
 
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             <Link href="/customer" className="group flex items-center gap-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 hover:shadow-xl hover:border-green-500 transition-all cursor-pointer">
               <div className="w-16 h-16 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center group-hover:bg-green-500 group-hover:text-white transition-colors">
                 <ShoppingBag size={28} />

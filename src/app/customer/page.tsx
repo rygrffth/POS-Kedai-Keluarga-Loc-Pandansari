@@ -281,7 +281,7 @@ export default function CustomerPage() {
   if (!mounted) return null;
 
   return (
-    <ScalingContainer bg="bg-slate-50" baseWidth={810} baseHeight={1080} mode="fit">
+    <ScalingContainer bg="bg-slate-50" baseWidth={1280} baseHeight={800} mode="width">
       <main className="h-full bg-slate-50 flex flex-col font-sans overflow-y-auto pb-32 relative">
         <div className="bg-slate-900 text-white p-5 lg:p-6 shadow-xl sticky top-0 z-10 flex justify-between items-center no-print w-full">
         <div onClick={handleSecretGateway} className="cursor-pointer select-none">
@@ -297,13 +297,13 @@ export default function CustomerPage() {
 
       </div>
 
-      <div className="p-4 lg:p-8 max-w-5xl mx-auto w-full no-print flex-1 space-y-6">
+      <div className="p-4 lg:p-8 max-w-7xl mx-auto w-full no-print flex-1 space-y-8">
 
         {/* BEST SELLERS SECTION */}
         {bestSellers.length > 0 && cart.length === 0 && (
           <div className="mb-6 animate-in slide-in-from-bottom-4 duration-500">
             <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-3 flex items-center gap-1.5"><Flame size={18} className="text-orange-500" /> Terlaris Minggu Ini</h2>
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
               {bestSellers.map(item => (
                 <div key={item.id} onClick={() => { addItemToCart(item); }} className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 hover:shadow-md hover:border-blue-200 transition-all cursor-pointer active:scale-95 group flex flex-col items-center text-center">
 
