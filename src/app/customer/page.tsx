@@ -281,7 +281,7 @@ export default function CustomerPage() {
   if (!mounted) return null;
 
   return (
-    <ScalingContainer bg="bg-slate-50" baseWidth={480} baseHeight={960} mode="fit">
+    <ScalingContainer bg="bg-slate-50" baseWidth={810} baseHeight={1080} mode="fit">
       <main className="h-full bg-slate-50 flex flex-col font-sans overflow-y-auto pb-32 relative">
         <div className="bg-slate-900 text-white p-5 lg:p-6 shadow-xl sticky top-0 z-10 flex justify-between items-center no-print w-full">
         <div onClick={handleSecretGateway} className="cursor-pointer select-none">
@@ -297,7 +297,7 @@ export default function CustomerPage() {
 
       </div>
 
-      <div className="p-4 lg:p-8 max-w-lg mx-auto w-full no-print flex-1 space-y-6">
+      <div className="p-4 lg:p-8 max-w-5xl mx-auto w-full no-print flex-1 space-y-6">
 
         {/* BEST SELLERS SECTION */}
         {bestSellers.length > 0 && cart.length === 0 && (

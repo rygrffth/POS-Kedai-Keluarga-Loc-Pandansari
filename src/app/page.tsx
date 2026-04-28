@@ -13,9 +13,9 @@ export default function Home() {
   }, []);
 
   return (
-    <ScalingContainer bg="bg-slate-50" baseWidth={450} baseHeight={800}>
+    <ScalingContainer bg="bg-slate-50" baseWidth={810} baseHeight={1080}>
       <main className="h-full bg-slate-50 flex items-center justify-center p-8 overflow-y-auto">
-        <div className="max-w-md w-full text-center">
+        <div className="max-w-2xl w-full text-center">
           <div className="w-24 h-24 bg-blue-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-500/30">
             <Store size={48} className="text-white" />
           </div>

@@ -1165,7 +1165,7 @@ export default function AdminDashboard() {
 
   if (!authRole) {
     return (
-      <ScalingContainer bg="bg-slate-900" baseWidth={430} baseHeight={800} mode="fit">
+      <ScalingContainer bg="bg-slate-900" baseWidth={810} baseHeight={1080} mode="fit">
         <main className="h-full bg-slate-900 flex items-center justify-center p-4">
           <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full animate-in zoom-in-95 duration-300">
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4"><Lock size={32} className="text-blue-600" /></div>
