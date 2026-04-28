@@ -1168,8 +1168,8 @@ export default function AdminDashboard() {
       <ScalingContainer bg="bg-slate-900" baseWidth={1280} baseHeight={800} mode="width">
         <main className="h-full bg-slate-900 flex items-center justify-center p-4">
           <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full animate-in zoom-in-95 duration-300">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4"><Lock size={32} className="text-blue-600" /></div>
-            <h2 className="text-2xl font-black text-center text-slate-800 mb-2">POS Login</h2>
+            <div onClick={() => window.location.href = '/'} className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 cursor-pointer hover:bg-blue-200 transition-all"><Lock size={32} className="text-blue-600" /></div>
+            <h2 onClick={() => window.location.href = '/'} className="text-2xl font-black text-center text-slate-800 mb-2 cursor-pointer hover:text-blue-600 transition-colors">POS Login</h2>
             <p className="text-center text-gray-500 mb-6 text-sm">Masukkan PIN Kasir atau PIN Owner.</p>
             <form onSubmit={handleLogin} className="space-y-4">
               <input type="password" value={pinInput} onChange={e => setPinInput(e.target.value)} placeholder="Masukkan Password" className="w-full text-center text-lg bg-gray-50 border border-gray-200 rounded-2xl px-4 py-4 focus:ring-4 focus:ring-blue-500 outline-none transition-all font-mono text-slate-900" autoFocus />
@@ -1187,7 +1187,7 @@ export default function AdminDashboard() {
       {/* Sticky Header & Tabs */}
       <div className="sticky top-0 z-20 no-print">
         <div className="bg-slate-900 text-white p-5 shadow-lg border-b border-slate-800 flex justify-between items-center w-full">
-          <h1 className="text-xl font-black tracking-tight flex items-center gap-2">
+          <h1 onClick={() => window.location.href = '/'} className="text-xl font-black tracking-tight flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
             <ShoppingBag size={22} /> KEDAI KELUARGA <span className="text-[10px] bg-blue-600 px-2 py-1 rounded ml-2 uppercase font-mono">{authRole}</span>
           </h1>
           <button onClick={() => { setAuthRole(null); localStorage.removeItem("pos_admin_role"); window.location.href = '/'; }} className="text-xs bg-slate-800 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-lg transition-colors font-bold flex items-center gap-1.5 shadow-sm"><Lock size={14} /> Ganti Role</button>

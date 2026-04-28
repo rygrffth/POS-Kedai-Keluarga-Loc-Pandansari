@@ -284,7 +284,7 @@ export default function CustomerPage() {
     <ScalingContainer bg="bg-slate-50" baseWidth={1280} baseHeight={800} mode="width">
       <main className="h-full bg-slate-50 flex flex-col font-sans overflow-y-auto pb-32 relative">
         <div className="bg-slate-900 text-white p-5 lg:p-6 shadow-xl sticky top-0 z-10 flex justify-between items-center no-print w-full">
-        <div onClick={handleSecretGateway} className="cursor-pointer select-none">
+        <div onClick={() => window.location.href = '/'} className="cursor-pointer select-none hover:opacity-80 transition-opacity">
           <h1 className="text-xl lg:text-2xl font-black tracking-tight flex items-center gap-2">
             <ShoppingBag size={24} className="text-green-400" /> Kedai Keluarga
           </h1>
