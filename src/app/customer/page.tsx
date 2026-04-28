@@ -56,14 +56,8 @@ export default function CustomerPage() {
   const handleSecretGateway = () => {
     setTapCount(prev => {
       const nextCount = prev + 1;
-      if (nextCount === 5) {
-        // Option to go directly to admin login (secret)
-        localStorage.removeItem("pos_admin_role"); 
-        window.location.href = "/admin";
-        return 0;
-      }
       if (nextCount >= 10) {
-        // Main request: 10 taps to go back to Home
+        // Main request: 10 taps to go back to Home (Pilih Role)
         window.location.href = "/";
         return 0;
       }
