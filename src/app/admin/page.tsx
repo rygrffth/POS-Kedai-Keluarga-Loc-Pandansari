@@ -1584,7 +1584,8 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
         {/* ================= TAB EXPENSES ================= */}
         {activeTab === "expenses" && authRole === "owner" && (
