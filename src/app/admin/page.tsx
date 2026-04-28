@@ -1428,8 +1428,14 @@ export default function AdminDashboard() {
                     <p className="text-xs text-slate-500 leading-relaxed font-medium">
                       {(analyticsData.expense / (analyticsData.omzet || 1)) > 0.3 ? 
                         "🔥 Biaya operasional Anda cukup tinggi (>30%). Pertimbangkan efisiensi di pos pengeluaran." : 
-        {activeTab === "analytics" && authRole === "owner" && (
-          <div className="space-y-6 animate-in fade-in duration-300">
+                        "✅ Biaya operasional Anda dalam batas wajar."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6">
             {/* STATS OVERVIEW CARDS */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-l-blue-500">
@@ -1571,10 +1577,10 @@ export default function AdminDashboard() {
                       </Pie>
                       <Tooltip formatter={(v: any) => `Laba: Rp ${v.toLocaleString('id-ID')}`} />
                     </PieChart>
-                  </BarChart>
-                </ResponsiveContainer></div>
-              ) : <p className="text-gray-400 text-center py-10 text-sm">Belum ada data transaksi per jam</p>}
-              <p className="text-xs text-gray-400 mt-3 text-center">Grafik menampilkan distribusi jumlah transaksi per jam. Jam dengan bar paling tinggi = jam tersibuk Anda.</p>
+                  </ResponsiveContainer>
+                </div>
+                <p className="text-xs text-gray-400 mt-3 text-center">Grafik menampilkan distribusi jumlah transaksi per jam. Jam dengan bar paling tinggi = jam tersibuk Anda.</p>
+              </div>
             </div>
           </div>
         )}
