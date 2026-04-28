@@ -244,7 +244,35 @@ export default function CustomerPage() {
     const doc = iframe.contentWindow?.document;
     if (doc) {
       doc.open();
-      doc.write(`<html><head><title>Struk Kedai Keluarga</title><style>@page { margin: 10mm; } body { font-family: monospace; padding: 16px; color: black; font-size: 12px; } .text-center { text-align: center; } .font-bold { font-weight: bold; } .flex { display: flex; } .justify-between { justify-content: space-between; } .mb-1 { margin-bottom: 4px; } .mb-4 { margin-bottom: 16px; } .text-base { font-size: 16px; } .text-lg { font-size: 18px; } .text-xs { font-size: 10px; } .uppercase { text-transform: uppercase; } .font-black { font-weight: 900; } .font-medium { font-weight: 500; } .border-b-2 { border-bottom: 1px dashed black; margin: 8px 0; } .space-y-3 > * + * { margin-top: 8px; } .mt-6 { margin-top: 20px; } .pt-4 { padding-top: 12px; border-top: 1px solid #ccc; }</style></head><body>${el.innerHTML}</body></html>`);
+      doc.write(`<html><head><title>Struk Kedai Keluarga</title><style>
+        @page { margin: 0; size: auto; } 
+        body { 
+          font-family: monospace; 
+          padding: 2mm; 
+          color: black; 
+          font-size: 10px; 
+          width: 54mm; /* Adjusted for standard 58mm paper */
+          margin: 0 auto;
+        } 
+        .text-center { text-align: center; } 
+        .font-bold { font-weight: bold; } 
+        .flex { display: flex; } 
+        .justify-between { justify-content: space-between; } 
+        .mb-1 { margin-bottom: 2px; } 
+        .mb-4 { margin-bottom: 12px; } 
+        .text-base { font-size: 12px; } 
+        .text-lg { font-size: 14px; } 
+        .text-xs { font-size: 9px; } 
+        .uppercase { text-transform: uppercase; } 
+        .font-black { font-weight: 900; } 
+        .font-medium { font-weight: 500; } 
+        .border-b-2 { border-bottom: 1px dashed black; margin: 6px 0; } 
+        .space-y-3 > * + * { margin-top: 6px; } 
+        .mt-6 { margin-top: 15px; } 
+        .pt-4 { padding-top: 10px; border-top: 1px solid black; }
+        #customer-receipt { padding: 0 !important; }
+        * { box-sizing: border-box; }
+      </style></head><body>${el.innerHTML}</body></html>`);
       doc.close();
       setTimeout(() => { iframe.contentWindow?.focus(); iframe.contentWindow?.print(); setTimeout(() => document.body.removeChild(iframe), 1000); }, 200);
     }
@@ -253,7 +281,7 @@ export default function CustomerPage() {
   if (!mounted) return null;
 
   return (
-    <ScalingContainer bg="bg-slate-900" baseWidth={480} baseHeight={960} mode="fit">
+    <ScalingContainer bg="bg-slate-50" baseWidth={480} baseHeight={960} mode="fit">
       <main className="h-full bg-slate-50 flex flex-col font-sans overflow-y-auto pb-32 relative">
         <div className="bg-slate-900 text-white p-5 lg:p-6 shadow-xl sticky top-0 z-10 flex justify-between items-center no-print w-full">
         <div onClick={handleSecretGateway} className="cursor-pointer select-none">
@@ -532,6 +560,9 @@ export default function CustomerPage() {
           </div>
         </div>
       )}
+      <div className="py-8 text-center opacity-30 no-print">
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">POS System By Naufal Rayhan</p>
+      </div>
       </main>
     </ScalingContainer>
   );

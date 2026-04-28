@@ -13,7 +13,7 @@ export default function Home() {
   }, []);
 
   return (
-    <ScalingContainer bg="bg-slate-900" baseWidth={450} baseHeight={800}>
+    <ScalingContainer bg="bg-slate-50" baseWidth={450} baseHeight={800}>
       <main className="h-full bg-slate-50 flex items-center justify-center p-8 overflow-y-auto">
         <div className="max-w-md w-full text-center">
           <div className="w-24 h-24 bg-blue-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-500/30">
@@ -45,7 +45,7 @@ export default function Home() {
             </Link>
           </div>
 
-          <p className="text-xs text-slate-400 mt-12 font-medium">WEB POS by Naufal Rayhan</p>
+          <p className="text-xs text-slate-400 mt-12 font-medium">POS System By Naufal Rayhan</p>
         </div>
       </main>
     </ScalingContainer>

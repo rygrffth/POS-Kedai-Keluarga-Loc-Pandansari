@@ -71,7 +71,7 @@ export default function ScalingContainer({
           transition: "transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
           flexShrink: 0,
         }}
-        className="relative shadow-2xl bg-white grain-texture"
+        className="relative bg-white grain-texture"
       >
         {children}
       </div>

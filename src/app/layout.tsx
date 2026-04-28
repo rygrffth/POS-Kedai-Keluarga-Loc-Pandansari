@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Kedai Keluarga",
-  description: "POS by Naufal Rayhan",
+  description: "POS System By Naufal Rayhan",
 };
 
 export default function RootLayout({

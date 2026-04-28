@@ -833,7 +833,33 @@ export default function AdminDashboard() {
     const doc = iframe.contentWindow?.document;
     if (doc) {
       doc.open();
-      doc.write(`<html><head><title>Struk Pembayaran</title><style>@page { margin: 0; } body { font-family: monospace; padding: 20px; color: black; font-size: 12px; } .text-center { text-align: center; } .font-bold { font-weight: bold; } .mb-1 { margin-bottom: 4px; } .mb-3 { margin-bottom: 12px; } .mb-5 { margin-bottom: 20px; } .flex { display: flex; } .justify-between { justify-content: space-between; } .border-b-2 { border-bottom: 1px dashed black; margin-bottom: 8px;} .uppercase { text-transform: uppercase; } .text-sm { font-size: 14px; } .text-lg { font-size: 18px; } .italic { font-style: italic; } .opacity-80 { opacity: 0.8; } .pt-2 { padding-top: 8px; border-top: 2px solid black; }</style></head><body>${printContent.innerHTML}</body></html>`);
+      doc.write(`<html><head><title>Struk Pembayaran</title><style>
+        @page { margin: 0; size: auto; }
+        body { 
+          font-family: monospace; 
+          padding: 2mm; 
+          color: black; 
+          font-size: 10px; 
+          width: 54mm; /* Adjusted for standard 58mm paper with small margin */
+          margin: 0 auto;
+        } 
+        .text-center { text-align: center; } 
+        .font-bold { font-weight: bold; } 
+        .mb-1 { margin-bottom: 2px; } 
+        .mb-3 { margin-bottom: 8px; } 
+        .mb-5 { margin-bottom: 15px; } 
+        .flex { display: flex; } 
+        .justify-between { justify-content: space-between; } 
+        .border-b-2 { border-bottom: 1px dashed black; margin-bottom: 6px;} 
+        .uppercase { text-transform: uppercase; } 
+        .text-sm { font-size: 11px; } 
+        .text-lg { font-size: 14px; } 
+        .italic { font-style: italic; } 
+        .opacity-80 { opacity: 0.8; } 
+        .pt-2 { padding-top: 6px; border-top: 1px solid black; }
+        #printable-receipt { padding: 0 !important; }
+        * { box-sizing: border-box; }
+      </style></head><body>${printContent.innerHTML}</body></html>`);
       doc.close();
       setTimeout(() => { iframe.contentWindow?.focus(); iframe.contentWindow?.print(); setTimeout(() => document.body.removeChild(iframe), 1000); }, 200);
     }
@@ -1156,7 +1182,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <ScalingContainer bg="bg-slate-100" baseWidth={1280} baseHeight={1000} mode="width">
+    <ScalingContainer bg="bg-gray-50" baseWidth={1280} baseHeight={1000} mode="width">
       <main className="h-full bg-gray-50 flex flex-col font-sans overflow-y-auto relative">
       {/* Sticky Header & Tabs */}
       <div className="sticky top-0 z-20 no-print">
@@ -2276,7 +2302,7 @@ export default function AdminDashboard() {
               <div id="printable-receipt" className="p-6 font-mono text-[11px] sm:text-xs text-slate-900 bg-white">
                 <div className="text-center">
                   <p className="font-black text-lg tracking-tighter mb-0.5">KEDAI KELUARGA</p>
-                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Premium POS System</p>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">POS System By Naufal Rayhan</p>
                 </div>
                 <div className="border-b-2 border-dashed border-slate-200 my-4"></div>
                 
@@ -2380,6 +2406,9 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+      <div className="py-8 text-center opacity-30 no-print">
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">POS System By Naufal Rayhan</p>
+      </div>
       </main>
     </ScalingContainer>
   );
